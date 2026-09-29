@@ -108,7 +108,7 @@
                         </p>
                     </div>
 
-                    <!-- Search Bar Box -->
+                    <!-- Cleaned Search Bar Box (No hardcoded text inside date input) -->
                     <div class="bg-brand-gold p-2 rounded-2xl shadow-2xl">
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-2 bg-white p-2 rounded-xl">
                             <div class="flex items-center space-x-3 px-3 py-3 rounded-lg hover:bg-gray-50 transition">
@@ -122,7 +122,7 @@
                                 <i class="fa-solid fa-calendar-days text-gray-400 text-lg"></i>
                                 <div class="w-full">
                                     <label class="block text-[10px] font-extrabold text-gray-500 uppercase tracking-wider">Check-in — Check-out</label>
-                                    <input type="text" value="Oct 12 — Oct 18" class="w-full text-sm font-semibold text-gray-800 focus:outline-none bg-transparent">
+                                    <input type="date" id="home-checkin" class="w-full text-xs font-semibold text-gray-800 focus:outline-none bg-transparent">
                                 </div>
                             </div>
                             <button onclick="filterHotels()" class="bg-brand-blue hover:bg-blue-900 text-white font-bold px-6 py-3.5 rounded-xl transition flex items-center justify-center space-x-2 shadow-md">
@@ -136,6 +136,24 @@
 
             <!-- Hotel Listings Grid Section -->
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-10 mb-20">
+                
+                <!-- Promotional Event Banner: Book Now & Get 10% Off -->
+                <div class="bg-gradient-to-r from-brand-blue via-blue-900 to-brand-darkblue text-white rounded-2xl p-6 sm:p-8 shadow-lg mb-8 flex flex-col md:flex-row justify-between items-center gap-6 border border-blue-500/30">
+                    <div class="flex items-center space-x-4">
+                        <div class="bg-brand-gold text-brand-dark w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-extrabold shadow-inner shrink-0">
+                            <i class="fa-solid fa-tags"></i>
+                        </div>
+                        <div>
+                            <span class="bg-brand-gold/20 text-brand-gold border border-brand-gold/30 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider inline-block mb-1">Special Limited Offer</span>
+                            <h3 class="text-xl sm:text-2xl font-extrabold tracking-tight">Book Now & Get 10% Off Your Stay!</h3>
+                            <p class="text-xs text-blue-200 mt-0.5">Apply our automatic seasonal voucher during checkout and enjoy lower rates across all Dubai properties.</p>
+                        </div>
+                    </div>
+                    <button onclick="applyGlobalDiscount()" class="bg-brand-gold hover:bg-amber-400 text-brand-dark font-extrabold px-6 py-3 rounded-xl transition shadow-md text-sm shrink-0 whitespace-nowrap">
+                        <i class="fa-solid fa-bolt mr-1"></i> Claim 10% Off Voucher
+                    </button>
+                </div>
+
                 <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200/80 mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
                         <h2 class="text-2xl font-extrabold text-gray-900">Explore Dubai Properties</h2>
@@ -199,9 +217,12 @@
                             </div>
                         </div>
 
-                        <!-- Bill Calculation Box (24-Hour Nights) -->
+                        <!-- Bill Calculation Box (24-Hour Nights with 10% Discount Integration) -->
                         <div class="bg-gray-50 p-6 rounded-2xl border border-gray-200 space-y-3">
-                            <h4 class="font-extrabold text-sm text-gray-900 uppercase tracking-wider mb-2">Bill Summary (24-Hour Calculation)</h4>
+                            <div class="flex justify-between items-center mb-2">
+                                <h4 class="font-extrabold text-sm text-gray-900 uppercase tracking-wider">Bill Summary (24-Hour Calculation)</h4>
+                                <span id="discount-badge" class="hidden bg-emerald-100 text-emerald-800 text-[10px] font-extrabold px-2.5 py-1 rounded-full"><i class="fa-solid fa-tag mr-1"></i> 10% Promo Applied!</span>
+                            </div>
                             <div class="flex justify-between text-sm font-semibold text-gray-600">
                                 <span>Total Nights (24-Hour Periods):</span>
                                 <span id="bill-nights" class="font-bold text-gray-900">1 night</span>
@@ -209,6 +230,10 @@
                             <div class="flex justify-between text-sm font-semibold text-gray-600">
                                 <span>Price per Night:</span>
                                 <span id="bill-per-night">AED 0</span>
+                            </div>
+                            <div id="discount-row" class="hidden flex justify-between text-sm font-semibold text-emerald-600">
+                                <span>10% Promotional Discount:</span>
+                                <span id="bill-discount-amount">- AED 0</span>
                             </div>
                             <hr class="border-gray-200">
                             <div class="flex justify-between items-center">
@@ -373,6 +398,7 @@
         let currentUser = null;
         let authModeState = 'login';
         let currentHotelForBooking = null;
+        let isPromoActive = false; // Tracks if the 10% discount is applied
 
         const ADMIN_EMAIL = "abdulrafay@example.com";
 
@@ -529,6 +555,11 @@
             renderCustomerHotels(filtered);
         }
 
+        function applyGlobalDiscount() {
+            isPromoActive = true;
+            alert('🎉 Success! The 10% Off Voucher has been activated. It will be automatically applied to your bill when you book any hotel.');
+        }
+
         function showHotelDetails(hotelId) {
             const hotel = hotelsCache.find(h => h.id === hotelId);
             if(!hotel) return;
@@ -574,7 +605,7 @@
                         </div>
                         <hr class="border-blue-200">
                         <button onclick="openCheckoutPage('${hotel.id}')" class="w-full bg-brand-gold hover:bg-amber-400 text-brand-dark font-extrabold py-3.5 rounded-xl transition shadow-md">
-                            Book Now & Proceed to Bill
+                            Book Now & Proceed to Bill ${isPromoActive ? '(10% Off Active)' : ''}
                         </button>
                     </div>
                 </div>
@@ -619,12 +650,28 @@
             let nights = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
             if(nights < 1) nights = 1;
 
-            const total = nights * currentHotelForBooking.price;
+            let subtotal = nights * currentHotelForBooking.price;
+            let finalTotal = subtotal;
+
+            const badge = document.getElementById('discount-badge');
+            const row = document.getElementById('discount-row');
+            const discountAmtSpan = document.getElementById('bill-discount-amount');
+
+            if(isPromoActive) {
+                let discountVal = subtotal * 0.10;
+                finalTotal = subtotal - discountVal;
+                badge.classList.remove('hidden');
+                row.classList.remove('hidden');
+                discountAmtSpan.innerText = `- AED ${discountVal.toFixed(2)}`;
+            } else {
+                badge.classList.add('hidden');
+                row.classList.add('hidden');
+            }
 
             document.getElementById('bill-nights').innerText = `${nights} night${nights > 1 ? 's' : ''} (24-hour periods)`;
             document.getElementById('bill-per-night').innerText = `AED ${currentHotelForBooking.price}`;
-            document.getElementById('bill-total').innerText = `AED ${total}`;
-            return { nights, total };
+            document.getElementById('bill-total').innerText = `AED ${finalTotal.toFixed(2)}`;
+            return { nights, total: finalTotal };
         }
 
         async function submitBookingOrder(e) {
