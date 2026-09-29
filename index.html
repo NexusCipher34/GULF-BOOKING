@@ -151,20 +151,115 @@
             <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8" id="details-content"></div>
         </div>
 
-        <!-- ================= VIEW 3: USER BOOKINGS STATUS PAGE ================= -->
+        <!-- ================= VIEW 3: FULL-SCREEN CHECKOUT & PAYMENT INTERFACE ================= -->
+        <div id="view-checkout" class="hidden animate-fade-in py-12 bg-gray-50">
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+                <button onclick="switchView('details')" class="mb-6 text-xs font-bold text-brand-blue hover:underline flex items-center space-x-1">
+                    <i class="fa-solid fa-arrow-left"></i>
+                    <span>Back to hotel details</span>
+                </button>
+
+                <div class="bg-white p-8 sm:p-10 rounded-3xl shadow-sm border border-gray-200 space-y-8">
+                    <div class="flex items-center space-x-4 pb-6 border-b border-gray-100">
+                        <div class="bg-brand-blue text-brand-gold w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-bold shadow-md">
+                            <i class="fa-solid fa-file-invoice-dollar"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-2xl font-extrabold text-gray-900">Secure Checkout & Payment</h1>
+                            <p class="text-xs text-gray-500 mt-0.5">Select your stay duration (calculated in 24-hour nights), review your bill, and pay via bank transfer.</p>
+                        </div>
+                    </div>
+
+                    <!-- Selected Hotel Summary -->
+                    <div id="checkout-hotel-summary" class="bg-blue-50/70 p-6 rounded-2xl border border-blue-100 flex flex-col sm:flex-row items-center gap-6">
+                        <!-- Populated dynamically -->
+                    </div>
+
+                    <form onsubmit="submitBookingOrder(event)" class="space-y-6">
+                        <!-- Date & Time Selection -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 uppercase mb-2"><i class="fa-solid fa-calendar mr-1"></i> Check-in Date</label>
+                                <input type="date" id="book-checkin" required class="w-full text-sm border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-blue bg-white" onchange="calculateBill()">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 uppercase mb-2"><i class="fa-solid fa-calendar mr-1"></i> Check-out Date</label>
+                                <input type="date" id="book-checkout" required class="w-full text-sm border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-blue bg-white" onchange="calculateBill()">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 uppercase mb-2"><i class="fa-solid fa-clock mr-1"></i> Check-in Time</label>
+                                <input type="time" id="book-time" value="14:00" required class="w-full text-sm border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-blue bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 uppercase mb-2"><i class="fa-solid fa-users mr-1"></i> Number of Guests</label>
+                                <input type="number" id="book-guests" min="1" value="2" required class="w-full text-sm border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-blue bg-white">
+                            </div>
+                        </div>
+
+                        <!-- Bill Calculation Box (24-Hour Nights) -->
+                        <div class="bg-gray-50 p-6 rounded-2xl border border-gray-200 space-y-3">
+                            <h4 class="font-extrabold text-sm text-gray-900 uppercase tracking-wider mb-2">Bill Summary (24-Hour Calculation)</h4>
+                            <div class="flex justify-between text-sm font-semibold text-gray-600">
+                                <span>Total Nights (24-Hour Periods):</span>
+                                <span id="bill-nights" class="font-bold text-gray-900">1 night</span>
+                            </div>
+                            <div class="flex justify-between text-sm font-semibold text-gray-600">
+                                <span>Price per Night:</span>
+                                <span id="bill-per-night">AED 0</span>
+                            </div>
+                            <hr class="border-gray-200">
+                            <div class="flex justify-between items-center">
+                                <span class="font-extrabold text-base text-gray-900">Total Bill Amount:</span>
+                                <span id="bill-total" class="text-2xl font-extrabold text-brand-blue">AED 0</span>
+                            </div>
+                        </div>
+
+                        <!-- Company Account Details for Payment -->
+                        <div class="bg-amber-50 p-6 rounded-2xl border border-amber-200 space-y-3">
+                            <h4 class="font-extrabold text-sm text-amber-900 uppercase tracking-wider flex items-center">
+                                <i class="fa-solid fa-building-columns mr-2 text-brand-gold"></i> Proceed to Payment - Corporate Bank Account
+                            </h4>
+                            <p class="text-xs text-amber-800">Transfer the total bill amount to the official GulfBooking corporate account below before submitting:</p>
+                            <div class="bg-white p-4 rounded-xl border border-amber-300 text-xs font-mono space-y-1 text-gray-700">
+                                <p><strong>Bank Name:</strong> Emirates NBD Dubai</p>
+                                <p><strong>Account Title:</strong> GulfBooking Tourism LLC</p>
+                                <p><strong>IBAN:</strong> AE22 0300 0001 2345 6789 01</p>
+                                <p><strong>Branch Code:</strong> 001 - Downtown Dubai</p>
+                            </div>
+                        </div>
+
+                        <!-- Payment Screenshot Upload -->
+                        <div class="bg-gray-50 p-6 rounded-2xl border border-gray-200 space-y-3">
+                            <label class="block text-xs font-bold text-gray-800 uppercase">
+                                <i class="fa-solid fa-image mr-1 text-brand-blue"></i> Upload Payment Transaction Screenshot (URL)
+                            </label>
+                            <p class="text-xs text-gray-500">After completing your transfer, paste your receipt image link here (e.g., Imgur or ImgBB link).</p>
+                            <input type="url" id="book-receipt-url" required placeholder="https://imgur.com/..." class="w-full text-sm border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-blue bg-white">
+                        </div>
+
+                        <button type="submit" id="submit-booking-btn" class="w-full bg-brand-gold hover:bg-amber-400 text-brand-dark font-extrabold py-4 rounded-xl transition shadow-lg text-base">
+                            Proceed to Submit Payment Proof
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= VIEW 4: USER BOOKINGS STATUS PAGE ================= -->
         <div id="view-my-bookings" class="hidden animate-fade-in py-10 bg-gray-50">
             <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
                 <h1 class="text-2xl font-extrabold text-gray-900 mb-6 flex items-center space-x-2">
                     <i class="fa-solid fa-receipt text-brand-blue"></i>
                     <span>My Booking Reservations & Status</span>
                 </h1>
-                <div id="my-bookings-list" class="space-y-4">
-                    <!-- Populated dynamically -->
-                </div>
+                <div id="my-bookings-list" class="space-y-4"></div>
             </div>
         </div>
 
-        <!-- ================= VIEW 4: ADMIN MANAGEMENT PANEL ================= -->
+        <!-- ================= VIEW 5: ADMIN MANAGEMENT PANEL ================= -->
         <div id="view-admin" class="hidden animate-fade-in py-10 bg-gray-100">
             <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="bg-brand-blue text-white p-8 rounded-2xl shadow-lg mb-8 flex justify-between items-center">
@@ -177,13 +272,12 @@
                     </button>
                 </div>
 
-                <!-- Admin Tabs -->
                 <div class="flex space-x-4 mb-6">
                     <button onclick="switchAdminTab('hotels')" id="admin-tab-hotels-btn" class="bg-brand-blue text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow">Manage Hotels</button>
                     <button onclick="switchAdminTab('bookings')" id="admin-tab-bookings-btn" class="bg-white text-gray-700 px-5 py-2.5 rounded-xl font-bold text-sm shadow border">Customer Bookings & Payments</button>
                 </div>
 
-                <!-- Tab 1: Hotels Management -->
+                <!-- Tab 1: Hotels -->
                 <div id="admin-section-hotels" class="space-y-8">
                     <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-200">
                         <h3 class="text-lg font-bold text-gray-900 mb-6 flex items-center space-x-2 pb-3 border-b border-gray-100">
@@ -226,14 +320,13 @@
                     </div>
                 </div>
 
-                <!-- Tab 2: Customer Bookings Management -->
+                <!-- Tab 2: Bookings -->
                 <div id="admin-section-bookings" class="hidden space-y-6">
                     <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-200">
                         <h3 class="text-lg font-bold text-gray-900 mb-4">Incoming Customer Reservations & Payment Verification</h3>
                         <div id="admin-bookings-list" class="space-y-4"></div>
                     </div>
                 </div>
-
             </div>
         </div>
 
@@ -247,69 +340,7 @@
         </div>
     </footer>
 
-    <!-- ================= CHECKOUT & BILLING MODAL ================= -->
-    <div id="checkout-modal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
-        <div class="bg-white rounded-2xl max-w-lg w-full p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto">
-            <button onclick="closeCheckoutModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
-            <h3 class="text-xl font-extrabold text-gray-900 mb-4"><i class="fa-solid fa-file-invoice-dollar text-brand-blue mr-2"></i> Booking Bill & Checkout</h3>
-            
-            <div id="checkout-hotel-info" class="bg-blue-50 p-4 rounded-xl mb-6 text-sm border border-blue-100 space-y-1"></div>
-
-            <form onsubmit="submitBookingOrder(event)" class="space-y-4">
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Check-in Date</label>
-                        <input type="date" id="book-checkin" required class="w-full text-sm border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-blue" onchange="calculateBill()">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Check-out Date</label>
-                        <input type="date" id="book-checkout" required class="w-full text-sm border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-blue" onchange="calculateBill()">
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Check-in Time</label>
-                        <input type="time" id="book-time" value="14:00" required class="w-full text-sm border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-blue">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Number of Guests</label>
-                        <input type="number" id="book-guests" min="1" value="2" required class="w-full text-sm border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-blue">
-                    </div>
-                </div>
-
-                <!-- Generated Bill Box -->
-                <div class="bg-gray-50 p-4 rounded-xl border border-gray-200 text-sm space-y-2">
-                    <div class="flex justify-between font-semibold text-gray-600">
-                        <span>Total Nights:</span>
-                        <span id="bill-nights">1 night</span>
-                    </div>
-                    <div class="flex justify-between font-semibold text-gray-600">
-                        <span>Price per Night:</span>
-                        <span id="bill-per-night">AED 0</span>
-                    </div>
-                    <hr class="border-gray-200">
-                    <div class="flex justify-between font-extrabold text-base text-gray-900">
-                        <span>Total Bill Amount:</span>
-                        <span id="bill-total" class="text-brand-blue">AED 0</span>
-                    </div>
-                </div>
-
-                <!-- Payment Screenshot Upload -->
-                <div>
-                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Upload Payment Transaction Screenshot (URL)</label>
-                    <input type="url" id="book-receipt-url" required placeholder="Paste screenshot image URL (e.g. Imgur, ImgBB)" class="w-full text-sm border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-blue">
-                    <p class="text-[11px] text-gray-500 mt-1">Please transfer the total amount via bank/card and paste your receipt image link.</p>
-                </div>
-
-                <button type="submit" id="submit-booking-btn" class="w-full bg-brand-gold hover:bg-amber-400 text-brand-dark font-extrabold py-3.5 rounded-xl transition shadow-md">
-                    Submit Booking & Payment
-                </button>
-            </form>
-        </div>
-    </div>
-
-    <!-- Auth Modal -->
+    <!-- AUTH MODAL -->
     <div id="auth-modal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
         <div class="bg-white rounded-2xl max-w-md w-full p-8 shadow-2xl relative">
             <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
@@ -354,7 +385,6 @@
                 checkAdminAccess(user);
             });
 
-            // Live listener for hotels
             onSnapshot(collection(db, "hotels"), (snapshot) => {
                 hotelsCache = [];
                 snapshot.forEach((docSnap) => {
@@ -364,7 +394,6 @@
                 renderAdminList();
             });
 
-            // Live listener for bookings
             onSnapshot(collection(db, "bookings"), (snapshot) => {
                 bookingsCache = [];
                 snapshot.forEach((docSnap) => {
@@ -390,6 +419,7 @@
         function switchView(viewId) {
             document.getElementById('view-home').classList.add('hidden');
             document.getElementById('view-details').classList.add('hidden');
+            document.getElementById('view-checkout').classList.add('hidden');
             document.getElementById('view-admin').classList.add('hidden');
             document.getElementById('view-my-bookings').classList.add('hidden');
 
@@ -407,6 +437,8 @@
                 renderAdminBookings();
             } else if(viewId === 'details') {
                 document.getElementById('view-details').classList.remove('hidden');
+            } else if(viewId === 'checkout') {
+                document.getElementById('view-checkout').classList.remove('hidden');
             } else if(viewId === 'my-bookings') {
                 if(!currentUser) {
                     alert('Please sign in to view your bookings.');
@@ -519,7 +551,7 @@
                         <p class="text-sm text-gray-500 mt-1"><i class="fa-solid fa-location-dot text-gray-400 mr-1"></i>${hotel.location}</p>
                     </div>
                     <div class="mt-4 sm:mt-0 bg-brand-blue text-white px-4 py-2 rounded-xl text-center">
-                        <span class="text-[10px] text-blue-200 block uppercase font-bold">Price per night</span>
+                        <span class="text-[10px] text-blue-200 block uppercase font-bold">Price per night (24 Hours)</span>
                         <span class="text-xl font-extrabold">AED ${hotel.price}</span>
                     </div>
                 </div>
@@ -537,12 +569,12 @@
                     </div>
                     <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-2xl border border-blue-100 h-fit space-y-4 shadow-sm">
                         <div>
-                            <span class="text-xs text-gray-500 block">Rate per night</span>
+                            <span class="text-xs text-gray-500 block">Rate per 24-hr night</span>
                             <div class="text-3xl font-extrabold text-gray-900">AED ${hotel.price}</div>
                         </div>
                         <hr class="border-blue-200">
-                        <button onclick="openCheckoutModal('${hotel.id}')" class="w-full bg-brand-gold hover:bg-amber-400 text-brand-dark font-extrabold py-3.5 rounded-xl transition shadow-md">
-                            Book Now & Generate Bill
+                        <button onclick="openCheckoutPage('${hotel.id}')" class="w-full bg-brand-gold hover:bg-amber-400 text-brand-dark font-extrabold py-3.5 rounded-xl transition shadow-md">
+                            Book Now & Proceed to Bill
                         </button>
                     </div>
                 </div>
@@ -550,8 +582,8 @@
             switchView('details');
         }
 
-        // ================= CHECKOUT & BILLING WORKFLOW =================
-        function openCheckoutModal(hotelId) {
+        // ================= FULL-SCREEN CHECKOUT WORKFLOW =================
+        function openCheckoutPage(hotelId) {
             if(!currentUser) {
                 alert('Please sign in to proceed with booking.');
                 openAuthModal('login');
@@ -560,23 +592,22 @@
             currentHotelForBooking = hotelsCache.find(h => h.id === hotelId);
             if(!currentHotelForBooking) return;
 
-            // Set default dates (today to tomorrow)
             const today = new Date().toISOString().split('T')[0];
             const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
             document.getElementById('book-checkin').value = today;
             document.getElementById('book-checkout').value = tomorrow;
 
-            document.getElementById('checkout-hotel-info').innerHTML = `
-                <div class="font-bold text-gray-900">${currentHotelForBooking.name}</div>
-                <div class="text-xs text-gray-500"><i class="fa-solid fa-location-dot mr-1"></i>${currentHotelForBooking.location}</div>
+            document.getElementById('checkout-hotel-summary').innerHTML = `
+                <img src="${currentHotelForBooking.mainImage}" class="w-24 h-24 rounded-xl object-cover shadow-sm">
+                <div>
+                    <h3 class="text-lg font-extrabold text-gray-900">${currentHotelForBooking.name}</h3>
+                    <p class="text-xs text-gray-500 mt-0.5"><i class="fa-solid fa-location-dot text-gray-400 mr-1"></i>${currentHotelForBooking.location}</p>
+                    <span class="inline-block mt-2 bg-brand-blue text-white text-xs font-bold px-3 py-1 rounded-lg">AED ${currentHotelForBooking.price} / 24-hr night</span>
+                </div>
             `;
 
             calculateBill();
-            document.getElementById('checkout-modal').classList.remove('hidden');
-        }
-
-        function closeCheckoutModal() {
-            document.getElementById('checkout-modal').classList.add('hidden');
+            switchView('checkout');
         }
 
         function calculateBill() {
@@ -590,7 +621,7 @@
 
             const total = nights * currentHotelForBooking.price;
 
-            document.getElementById('bill-nights').innerText = `${nights} night${nights > 1 ? 's' : ''}`;
+            document.getElementById('bill-nights').innerText = `${nights} night${nights > 1 ? 's' : ''} (24-hour periods)`;
             document.getElementById('bill-per-night').innerText = `AED ${currentHotelForBooking.price}`;
             document.getElementById('bill-total').innerText = `AED ${total}`;
             return { nights, total };
@@ -620,17 +651,16 @@
                     totalBill: bill.total,
                     nights: bill.nights,
                     receiptUrl,
-                    status: "Pending", // Initial status
+                    status: "Pending",
                     createdAt: Date.now()
                 });
 
-                closeCheckoutModal();
                 alert('Thanks! We will review your payment. Your booking status is currently PENDING. Our team will get in contact with you within 2 working hours.');
                 switchView('my-bookings');
             } catch(err) {
                 alert('Error submitting booking: ' + err.message);
             } finally {
-                btn.innerText = "Submit Booking & Payment";
+                btn.innerText = "Proceed to Submit Payment Proof";
                 btn.disabled = false;
             }
         }
@@ -658,7 +688,7 @@
                             <h3 class="font-bold text-lg text-gray-900">${b.hotelName}</h3>
                             <span class="text-xs font-extrabold px-3 py-1 rounded-full border ${badgeColor}">${b.status}</span>
                         </div>
-                        <p class="text-xs text-gray-500"><i class="fa-solid fa-calendar-days mr-1"></i> ${b.checkin} to ${b.checkout} (${b.nights} night/s) · Time: ${b.time} · Guests: ${b.guests}</p>
+                        <p class="text-xs text-gray-500"><i class="fa-solid fa-calendar-days mr-1"></i> ${b.checkin} to ${b.checkout} (${b.nights}) · Time: ${b.time} · Guests: ${b.guests}</p>
                         <p class="text-xs font-bold text-gray-800 mt-2">Total Bill: AED ${b.totalBill}</p>
                     </div>
                     <div class="text-right text-xs">
@@ -687,7 +717,7 @@
                 div.innerHTML = `
                     <div>
                         <span class="font-extrabold text-brand-blue">${b.userEmail}</span> booked <strong class="text-gray-900">${b.hotelName}</strong>
-                        <p class="text-gray-500 mt-0.5">${b.checkin} to ${b.checkout} · Guests: ${b.guests} · Bill: <strong>AED ${b.totalBill}</strong></p>
+                        <p class="text-gray-500 mt-0.5">${b.checkin} to ${b.checkout} (${b.nights}) · Guests: ${b.guests} · Bill: <strong>AED ${b.totalBill}</strong></p>
                         <div class="mt-2 flex items-center space-x-2">
                             <span class="px-2 py-0.5 rounded font-bold ${badgeColor}">Status: ${b.status}</span>
                             <a href="${b.receiptUrl}" target="_blank" class="text-brand-blue font-bold underline"><i class="fa-solid fa-image mr-1"></i> View Receipt Screenshot</a>
@@ -713,7 +743,6 @@
             }
         }
 
-        // Add Hotel & Admin List logic...
         async function handleAddNewHotel(e) {
             e.preventDefault();
             const { db, collection, addDoc } = window.fb;
@@ -762,7 +791,6 @@
             }
         }
 
-        // Auth Modal Helpers
         function openAuthModal(mode) { setAuthMode(mode); document.getElementById('auth-modal').classList.remove('hidden'); }
         function closeAuthModal() { document.getElementById('auth-modal').classList.add('hidden'); }
         function setAuthMode(mode) {
