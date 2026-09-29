@@ -11,13 +11,12 @@
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
-    <!-- Firebase SDKs (Modular v10/12 CDN with Auth, Firestore, and App) -->
+    <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, getDocs, doc, deleteDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, doc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // Your exact Firebase Project Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyChERqtRP3q3lxo7IXJhgXlv1dJdkLHetc",
             authDomain: "gulf-booking-eba51.firebaseapp.com",
@@ -28,15 +27,11 @@
             measurementId: "G-TXYZW5TZJD"
         };
 
-        // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // Make Firebase objects globally available for our app scripts
-        window.fb = { auth, db, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, collection, addDoc, getDocs, doc, deleteDoc, getDoc };
-        
-        // Trigger initial app load after Firebase attaches
+        window.fb = { auth, db, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, collection, addDoc, getDocs, doc, deleteDoc, onSnapshot };
         document.dispatchEvent(new Event('firebase-ready'));
     </script>
 
@@ -79,10 +74,8 @@
 
                 <!-- Navigation Actions -->
                 <div class="flex items-center space-x-3">
-                    <button onclick="switchView('admin')" class="bg-blue-900/60 hover:bg-blue-900 text-blue-200 hover:text-white px-3.5 py-2 rounded-lg text-xs font-semibold transition border border-blue-700/50 flex items-center space-x-1.5">
-                        <i class="fa-solid fa-gear"></i>
-                        <span>Manage Hotels</span>
-                    </button>
+                    <!-- Hidden Admin Button (Only appears for admin email) -->
+                    <div id="admin-nav-container"></div>
                     
                     <!-- Dynamic Auth Header State -->
                     <div id="auth-header-container">
@@ -101,34 +94,31 @@
         <!-- ================= VIEW 1: CUSTOMER HOMEPAGE & SEARCH ================= -->
         <div id="view-home" class="animate-fade-in">
             <!-- Hero Search Section -->
-            <div class="relative bg-brand-blue text-white pb-24 pt-12 px-4 sm:px-6 lg:px-8 overflow-hidden">
-                <div class="absolute inset-0 opacity-20 bg-cover bg-center" style="background-image: url('https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&w=1920&q=80')"></div>
-                <div class="absolute inset-0 bg-gradient-to-r from-brand-blue via-brand-blue/90 to-transparent"></div>
-                
-                <div class="relative max-w-7xl mx-auto">
-                    <div class="max-w-2xl mb-8">
-                        <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight leading-tight">
+            <div class="relative bg-brand-blue text-white pb-20 pt-10 px-4 sm:px-6 lg:px-8">
+                <div class="max-w-7xl mx-auto">
+                    <div class="max-w-2xl mb-6">
+                        <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight leading-tight">
                             Find your perfect stay in Dubai
                         </h1>
-                        <p class="mt-3 text-lg text-blue-100">
+                        <p class="mt-2 text-sm text-blue-100">
                             Book hand-picked hotels and luxury suites across Dubai with instant confirmation.
                         </p>
                     </div>
 
                     <!-- Search Bar -->
-                    <div class="bg-brand-gold p-2 rounded-2xl shadow-2xl">
+                    <div class="bg-brand-gold p-2 rounded-2xl shadow-xl">
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-2 bg-white p-2 rounded-xl">
-                            <div class="flex items-center space-x-3 px-3 py-2.5">
+                            <div class="flex items-center space-x-3 px-3 py-2">
                                 <i class="fa-solid fa-location-dot text-gray-400 text-lg"></i>
                                 <div class="w-full">
-                                    <label class="block text-[11px] font-bold text-gray-500 uppercase">Destination</label>
+                                    <label class="block text-[10px] font-bold text-gray-500 uppercase">Destination</label>
                                     <input type="text" id="search-input" oninput="filterHotels()" placeholder="e.g. Downtown, Marina, Deira" class="w-full text-sm font-semibold text-gray-800 focus:outline-none bg-transparent">
                                 </div>
                             </div>
-                            <div class="flex items-center space-x-3 px-3 py-2.5">
+                            <div class="flex items-center space-x-3 px-3 py-2">
                                 <i class="fa-solid fa-calendar-days text-gray-400 text-lg"></i>
                                 <div class="w-full">
-                                    <label class="block text-[11px] font-bold text-gray-500 uppercase">Check-in — Check-out</label>
+                                    <label class="block text-[10px] font-bold text-gray-500 uppercase">Check-in — Check-out</label>
                                     <input type="text" value="Oct 12 — Oct 18" class="w-full text-sm font-semibold text-gray-800 focus:outline-none bg-transparent">
                                 </div>
                             </div>
@@ -142,7 +132,7 @@
             </div>
 
             <!-- Hotel Listings Grid -->
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-10 mb-20">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 mb-20">
                 <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-6 flex justify-between items-center">
                     <div>
                         <h2 class="text-xl font-bold text-gray-900">Available Properties in Dubai</h2>
@@ -151,7 +141,7 @@
                 </div>
 
                 <div id="customer-hotel-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <!-- Dynamically populated from database -->
+                    <!-- Real-time database items populated here -->
                 </div>
             </div>
         </div>
@@ -163,22 +153,22 @@
             </div>
         </div>
 
-        <!-- ================= VIEW 3: HOTEL MANAGEMENT PANEL ================= -->
+        <!-- ================= VIEW 3: PRIVATE ADMIN MANAGEMENT PANEL ================= -->
         <div id="view-admin" class="hidden animate-fade-in py-10 bg-gray-100">
             <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
                 
                 <div class="bg-brand-blue text-white p-8 rounded-2xl shadow-lg mb-8 flex justify-between items-center">
                     <div>
-                        <span class="bg-brand-gold text-brand-dark text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider mb-2 inline-block">Control Panel</span>
+                        <span class="bg-brand-gold text-brand-dark text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider mb-2 inline-block">Private Admin Portal</span>
                         <h1 class="text-3xl font-extrabold">Hotel & 10+ Photo Gallery Management</h1>
-                        <p class="text-sm text-blue-100 mt-1">Add hotel listings and paste up to 10 image URLs for comprehensive room galleries.</p>
+                        <p class="text-sm text-blue-100 mt-1">Add hotels here. Updates reflect instantly for all users browsing the live site.</p>
                     </div>
                     <button onclick="switchView('home')" class="bg-white/10 hover:bg-white/20 text-white border border-white/30 px-4 py-2 rounded-xl text-sm font-semibold transition">
                         <i class="fa-solid fa-arrow-left mr-2"></i> View Website
                     </button>
                 </div>
 
-                <!-- Add Hotel Form with 10 Photo Inputs -->
+                <!-- Add Hotel Form -->
                 <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-200 mb-10">
                     <h3 class="text-lg font-bold text-gray-900 mb-6 flex items-center space-x-2 pb-3 border-b border-gray-100">
                         <i class="fa-solid fa-circle-plus text-brand-blue"></i>
@@ -189,11 +179,11 @@
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div>
                                 <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Hotel Name</label>
-                                <input type="text" id="admin-name" required placeholder="e.g. DAMAC Maison Dubai" class="w-full text-sm border border-gray-300 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-brand-blue focus:outline-none">
+                                <input type="text" id="admin-name" required placeholder="e.g. Premier Inn Dubai" class="w-full text-sm border border-gray-300 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-brand-blue focus:outline-none">
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Dubai Location / Area</label>
-                                <input type="text" id="admin-location" required placeholder="e.g. Business Bay, Dubai" class="w-full text-sm border border-gray-300 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-brand-blue focus:outline-none">
+                                <input type="text" id="admin-location" required placeholder="e.g. Al Jaddaf, Dubai" class="w-full text-sm border border-gray-300 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-brand-blue focus:outline-none">
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Price per Night (AED)</label>
@@ -249,7 +239,7 @@
         </div>
     </footer>
 
-    <!-- Auth Modal (Sign In / Register with Persistent Session) -->
+    <!-- Auth Modal -->
     <div id="auth-modal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
         <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl relative">
             <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
@@ -283,24 +273,32 @@
         let currentUser = null;
         let authModeState = 'login';
 
-        // Wait for Firebase module to load completely
+        // ⚠️ CHANGE THIS TO YOUR EXACT ADMIN EMAIL ADDRESS
+        const ADMIN_EMAIL = "abdulrafay@example.com"; 
+
         document.addEventListener('firebase-ready', () => {
-            const { auth, db, onAuthStateChanged, collection, getDocs } = window.fb;
+            const { auth, db, onAuthStateChanged, collection, onSnapshot } = window.fb;
 
             // Track persistent auth state across browser visits/refreshes
             onAuthStateChanged(auth, (user) => {
                 currentUser = user;
                 updateHeaderAuthUI(user);
+                checkAdminAccess(user);
             });
 
-            // Fetch initial hotels from Firestore
-            fetchHotelsFromDB();
-            
-            // Build the 10 photo input fields dynamically in the admin panel
+            // REAL-TIME LISTENER: Updates hotel data instantly across all users when you add/delete
+            onSnapshot(collection(db, "hotels"), (snapshot) => {
+                hotelsCache = [];
+                snapshot.forEach((docSnap) => {
+                    hotelsCache.push({ id: docSnap.id, ...docSnap.data() });
+                });
+                renderCustomerHotels();
+                renderAdminList();
+            });
+
             buildGalleryInputs();
         });
 
-        // Build 10 photo URL inputs in the admin form
         function buildGalleryInputs() {
             const container = document.getElementById('gallery-inputs-container');
             container.innerHTML = '';
@@ -313,24 +311,6 @@
             }
         }
 
-        // Fetch hotels from Firestore database
-        async function fetchHotelsFromDB() {
-            const { db, collection, getDocs } = window.fb;
-            try {
-                const querySnapshot = await getDocs(collection(db, "hotels"));
-                hotelsCache = [];
-                querySnapshot.forEach((docSnap) => {
-                    hotelsCache.push({ id: docSnap.id, ...docSnap.data() });
-                });
-                renderCustomerHotels();
-                renderAdminList();
-            } catch (err) {
-                console.error("Error fetching hotels:", err);
-                document.getElementById('property-count-text').innerText = "Database error or offline mode.";
-            }
-        }
-
-        // Switch between views
         function switchView(viewId) {
             document.getElementById('view-home').classList.add('hidden');
             document.getElementById('view-details').classList.add('hidden');
@@ -340,6 +320,12 @@
                 document.getElementById('view-home').classList.remove('hidden');
                 renderCustomerHotels();
             } else if(viewId === 'admin') {
+                // Security check
+                if(!currentUser || currentUser.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+                    alert('Access denied. Admin privileges required.');
+                    switchView('home');
+                    return;
+                }
                 document.getElementById('view-admin').classList.remove('hidden');
                 renderAdminList();
             } else if(viewId === 'details') {
@@ -348,7 +334,21 @@
             window.scrollTo({top: 0, behavior: 'smooth'});
         }
 
-        // Render customer grid
+        // Show/Hide Manage Hotels button based on whether logged-in user is the admin
+        function checkAdminAccess(user) {
+            const adminNav = document.getElementById('admin-nav-container');
+            if(user && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+                adminNav.innerHTML = `
+                    <button onclick="switchView('admin')" class="bg-blue-900/80 hover:bg-blue-900 text-blue-200 hover:text-white px-3.5 py-2 rounded-lg text-xs font-semibold transition border border-blue-700 flex items-center space-x-1.5 shadow-sm">
+                        <i class="fa-solid fa-gear text-brand-gold"></i>
+                        <span>Manage Hotels</span>
+                    </button>
+                `;
+            } else {
+                adminNav.innerHTML = ''; // Completely hidden for regular customers!
+            }
+        }
+
         function renderCustomerHotels(filteredList = null) {
             const container = document.getElementById('customer-hotel-grid');
             container.innerHTML = '';
@@ -360,9 +360,8 @@
                 container.innerHTML = `
                     <div class="col-span-full bg-white p-12 rounded-2xl text-center border border-dashed border-gray-300">
                         <i class="fa-solid fa-hotel text-4xl text-gray-300 mb-3"></i>
-                        <h3 class="text-lg font-bold text-gray-700">No hotels in database yet</h3>
-                        <p class="text-xs text-gray-500 mt-1 mb-4">Click "Manage Hotels" in top right to add your first property.</p>
-                        <button onclick="switchView('admin')" class="bg-brand-blue text-white px-4 py-2 rounded-xl text-xs font-bold">Add Hotel Now</button>
+                        <h3 class="text-lg font-bold text-gray-700">No hotels available right now</h3>
+                        <p class="text-xs text-gray-500 mt-1">Please check back soon as our team adds verified Dubai stays.</p>
                     </div>`;
                 return;
             }
@@ -394,7 +393,6 @@
             });
         }
 
-        // Search filter
         function filterHotels() {
             const query = document.getElementById('search-input').value.toLowerCase();
             const filtered = hotelsCache.filter(h => 
@@ -404,7 +402,6 @@
             renderCustomerHotels(filtered);
         }
 
-        // Detailed View with 10+ Photo Gallery Grid
         function showHotelDetails(hotelId) {
             const hotel = hotelsCache.find(h => h.id === hotelId);
             if(!hotel) return;
@@ -430,7 +427,6 @@
                     <p class="text-sm text-gray-500 mt-1"><i class="fa-solid fa-location-dot text-gray-400 mr-1"></i>${hotel.location}</p>
                 </div>
 
-                <!-- Main Cover Photo & Gallery Grid -->
                 <div class="mb-8">
                     <div class="h-96 rounded-2xl overflow-hidden shadow-sm mb-4">
                         <img src="${hotel.mainImage}" class="w-full h-full object-cover">
@@ -441,7 +437,6 @@
                     </div>
                 </div>
 
-                <!-- Room Details & Booking Box -->
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <div class="lg:col-span-2 space-y-6">
                         <div class="bg-white p-6 rounded-2xl border border-gray-200">
@@ -461,7 +456,6 @@
                         </div>
                     </div>
 
-                    <!-- Pricing & Booking Card -->
                     <div class="bg-blue-50 p-6 rounded-2xl border border-blue-100 h-fit space-y-4">
                         <div>
                             <span class="text-xs text-gray-500 block">Price per night</span>
@@ -478,7 +472,6 @@
             switchView('details');
         }
 
-        // Booking action check
         function handleBookingAction() {
             if(!currentUser) {
                 alert('Please sign in or create an account to complete your booking.');
@@ -488,7 +481,6 @@
             }
         }
 
-        // Add New Hotel & 10 Photos to Firestore Database
         async function handleAddNewHotel(e) {
             e.preventDefault();
             const { db, collection, addDoc } = window.fb;
@@ -513,21 +505,19 @@
                 await addDoc(collection(db, "hotels"), {
                     name, location, price, mainImage, photos, desc, createdAt: Date.now()
                 });
-                alert('Hotel and 10+ photo gallery successfully saved to database!');
+                alert('Hotel successfully published live to database!');
                 document.getElementById('hotel-form').reset();
                 buildGalleryInputs();
-                fetchHotelsFromDB();
                 switchView('home');
             } catch (err) {
                 console.error("Error adding hotel: ", err);
-                alert("Failed to save hotel. Please make sure your Firestore database is created in the Firebase Console.");
+                alert("Failed to save hotel.");
             } finally {
                 btn.innerText = "Save Hotel to Database";
                 btn.disabled = false;
             }
         }
 
-        // Render admin list table
         function renderAdminList() {
             const container = document.getElementById('admin-hotels-list');
             container.innerHTML = '';
@@ -545,7 +535,7 @@
                         <img src="${hotel.mainImage}" class="w-12 h-12 rounded-lg object-cover">
                         <div>
                             <h4 class="font-bold text-gray-900 text-sm">${hotel.name}</h4>
-                            <p class="text-xs text-gray-500">${hotel.location} · AED ${hotel.price} / night · (${hotel.photos ? hotel.photos.filter(p=>p).length : 0} gallery photos)</p>
+                            <p class="text-xs text-gray-500">${hotel.location} · AED ${hotel.price} / night</p>
                         </div>
                     </div>
                     <button onclick="deleteHotelDB('${hotel.id}')" class="text-red-500 hover:text-red-700 text-xs font-bold bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition">
@@ -556,20 +546,17 @@
             });
         }
 
-        // Delete hotel from database
         async function deleteHotelDB(id) {
-            if(confirm('Are you sure you want to delete this property from the database?')) {
+            if(confirm('Delete this property from the live database?')) {
                 const { db, doc, deleteDoc } = window.fb;
                 try {
                     await deleteDoc(doc(db, "hotels", id));
-                    fetchHotelsFromDB();
                 } catch(err) {
                     alert('Error deleting hotel.');
                 }
             }
         }
 
-        // Auth Modal & Persistent Session UI Handlers
         function openAuthModal(mode) {
             setAuthMode(mode);
             document.getElementById('auth-modal').classList.remove('hidden');
@@ -592,7 +579,7 @@
             } else {
                 regTab.className = "flex-1 pb-3 font-bold text-brand-blue border-b-2 border-brand-blue text-center";
                 loginTab.className = "flex-1 pb-3 font-bold text-gray-400 text-center";
-                nameBox.classList.remove('hidden');
+                nameBox.classList.add('hidden');
                 submitBtn.innerText = "Create Account";
             }
         }
@@ -610,7 +597,7 @@
                     if(name) {
                         await updateProfile(userCred.user, { displayName: name });
                     }
-                    alert('Account created successfully! Your login session is now saved.');
+                    alert('Account created successfully!');
                 } else {
                     await signInWithEmailAndPassword(auth, email, pass);
                     alert('Welcome back! Signed in successfully.');
@@ -627,7 +614,6 @@
             alert('Signed out successfully.');
         }
 
-        // Update Header UI based on Firebase Authentication state
         function updateHeaderAuthUI(user) {
             const container = document.getElementById('auth-header-container');
             if(user) {
