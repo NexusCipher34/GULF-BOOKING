@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GulfBooking | Dubai Luxury Stays</title>
+    <title>GulfBooking | Dubai Luxury Stays & Hotels</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
@@ -40,7 +40,12 @@
             theme: {
                 extend: {
                     colors: {
-                        brand: { blue: '#003580', gold: '#ffb700', dark: '#1a1a1a' }
+                        brand: {
+                            blue: '#003580',
+                            darkblue: '#00224f',
+                            gold: '#febb02',
+                            dark: '#1a1a1a'
+                        }
                     },
                     fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] }
                 }
@@ -48,38 +53,35 @@
         }
     </script>
     <style>
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #f1f1f1; }
         ::-webkit-scrollbar-thumb { background: #003580; border-radius: 4px; }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800 font-sans antialiased min-h-screen flex flex-col justify-between">
+<body class="bg-[#f5f7fa] text-gray-800 font-sans antialiased min-h-screen flex flex-col justify-between">
 
     <!-- Top Navigation Header -->
     <header class="bg-brand-blue text-white sticky top-0 z-50 shadow-md">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-20">
                 <!-- Logo -->
-                <div class="flex items-center space-x-3 cursor-pointer" onclick="switchView('home')">
-                    <div class="bg-brand-gold text-brand-blue font-extrabold text-2xl p-2 rounded-xl flex items-center justify-center w-11 h-11">
+                <div class="flex items-center space-x-3 cursor-pointer group" onclick="switchView('home')">
+                    <div class="bg-brand-gold text-brand-blue font-extrabold text-xl p-2.5 rounded-xl flex items-center justify-center w-11 h-11 shadow-inner group-hover:scale-105 transition">
                         <i class="fa-solid fa-hotel"></i>
                     </div>
                     <div>
                         <span class="text-2xl font-extrabold tracking-tight">Gulf<span class="text-brand-gold">Booking</span></span>
-                        <span class="block text-[10px] tracking-widest uppercase text-blue-200 font-medium">Verified Dubai Stays</span>
+                        <span class="block text-[10px] tracking-widest uppercase text-blue-200 font-bold">Verified Dubai Stays</span>
                     </div>
                 </div>
 
                 <!-- Navigation Actions -->
                 <div class="flex items-center space-x-3">
-                    <!-- Hidden Admin Button (Only appears for admin email) -->
                     <div id="admin-nav-container"></div>
-                    
-                    <!-- Dynamic Auth Header State -->
                     <div id="auth-header-container">
-                        <button onclick="openAuthModal('login')" class="bg-brand-gold hover:bg-amber-400 text-brand-dark px-4 py-2 rounded-lg text-sm font-bold transition shadow-sm">
+                        <button onclick="openAuthModal('login')" class="bg-brand-gold hover:bg-amber-400 text-brand-dark px-5 py-2.5 rounded-xl text-sm font-bold transition shadow-md">
                             Sign In / Register
                         </button>
                     </div>
@@ -91,57 +93,66 @@
     <!-- Main Dynamic Content Container -->
     <main class="flex-grow">
 
-        <!-- ================= VIEW 1: CUSTOMER HOMEPAGE & SEARCH ================= -->
+        <!-- ================= VIEW 1: HOMEPAGE & SEARCH ================= -->
         <div id="view-home" class="animate-fade-in">
             <!-- Hero Search Section -->
-            <div class="relative bg-brand-blue text-white pb-20 pt-10 px-4 sm:px-6 lg:px-8">
-                <div class="max-w-7xl mx-auto">
-                    <div class="max-w-2xl mb-6">
-                        <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight leading-tight">
-                            Find your perfect stay in Dubai
+            <div class="relative bg-gradient-to-b from-brand-blue to-brand-darkblue text-white pb-24 pt-12 px-4 sm:px-6 lg:px-8 overflow-hidden shadow-lg">
+                <div class="absolute inset-0 opacity-15 bg-cover bg-center mix-blend-overlay" style="background-image: url('https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&w=1920&q=80')"></div>
+                
+                <div class="relative max-w-7xl mx-auto">
+                    <div class="max-w-2xl mb-8">
+                        <span class="bg-brand-gold/20 text-brand-gold border border-brand-gold/30 text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wider inline-block mb-3 shadow-sm">
+                            <i class="fa-solid fa-star mr-1"></i> Dubai's Direct Booking Network
+                        </span>
+                        <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight leading-tight">
+                            Find your next stay in Dubai
                         </h1>
-                        <p class="mt-2 text-sm text-blue-100">
-                            Book hand-picked hotels and luxury suites across Dubai with instant confirmation.
+                        <p class="mt-3 text-base text-blue-100 font-medium">
+                            Search low prices on luxury hotels, resorts, and apartments across Dubai with zero booking fees.
                         </p>
                     </div>
 
-                    <!-- Search Bar -->
-                    <div class="bg-brand-gold p-2 rounded-2xl shadow-xl">
+                    <!-- Search Bar Box (Booking.com style) -->
+                    <div class="bg-brand-gold p-2 rounded-2xl shadow-2xl">
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-2 bg-white p-2 rounded-xl">
-                            <div class="flex items-center space-x-3 px-3 py-2">
+                            <div class="flex items-center space-x-3 px-3 py-3 rounded-lg hover:bg-gray-50 transition">
                                 <i class="fa-solid fa-location-dot text-gray-400 text-lg"></i>
                                 <div class="w-full">
-                                    <label class="block text-[10px] font-bold text-gray-500 uppercase">Destination</label>
+                                    <label class="block text-[10px] font-extrabold text-gray-500 uppercase tracking-wider">Destination</label>
                                     <input type="text" id="search-input" oninput="filterHotels()" placeholder="e.g. Downtown, Marina, Deira" class="w-full text-sm font-semibold text-gray-800 focus:outline-none bg-transparent">
                                 </div>
                             </div>
-                            <div class="flex items-center space-x-3 px-3 py-2">
+                            <div class="flex items-center space-x-3 px-3 py-3 rounded-lg hover:bg-gray-50 transition">
                                 <i class="fa-solid fa-calendar-days text-gray-400 text-lg"></i>
                                 <div class="w-full">
-                                    <label class="block text-[10px] font-bold text-gray-500 uppercase">Check-in — Check-out</label>
+                                    <label class="block text-[10px] font-extrabold text-gray-500 uppercase tracking-wider">Check-in — Check-out</label>
                                     <input type="text" value="Oct 12 — Oct 18" class="w-full text-sm font-semibold text-gray-800 focus:outline-none bg-transparent">
                                 </div>
                             </div>
-                            <button onclick="filterHotels()" class="bg-brand-blue hover:bg-blue-900 text-white font-bold px-6 py-3 rounded-xl transition flex items-center justify-center space-x-2">
+                            <button onclick="filterHotels()" class="bg-brand-blue hover:bg-blue-900 text-white font-bold px-6 py-3.5 rounded-xl transition flex items-center justify-center space-x-2 shadow-md">
                                 <i class="fa-solid fa-search"></i>
-                                <span>Search Hotels</span>
+                                <span class="text-base">Search Hotels</span>
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Hotel Listings Grid -->
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 mb-20">
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-6 flex justify-between items-center">
+            <!-- Hotel Listings Grid Section -->
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-10 mb-20">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200/80 mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
-                        <h2 class="text-xl font-bold text-gray-900">Available Properties in Dubai</h2>
-                        <p class="text-xs text-gray-500" id="property-count-text">Loading registered stays from database...</p>
+                        <h2 class="text-2xl font-extrabold text-gray-900">Explore Dubai Properties</h2>
+                        <p class="text-xs text-gray-500 mt-0.5" id="property-count-text">Loading registered stays from database...</p>
+                    </div>
+                    <div class="flex items-center space-x-2 text-xs font-bold text-gray-600 bg-gray-100 px-3 py-2 rounded-xl">
+                        <i class="fa-solid fa-shield-halved text-brand-blue"></i>
+                        <span>Verified Direct Rates</span>
                     </div>
                 </div>
 
                 <div id="customer-hotel-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <!-- Real-time database items populated here -->
+                    <!-- Populated dynamically -->
                 </div>
             </div>
         </div>
@@ -149,7 +160,7 @@
         <!-- ================= VIEW 2: HOTEL DETAILS PAGE (10+ PHOTO GALLERY) ================= -->
         <div id="view-details" class="hidden animate-fade-in py-10 bg-white">
             <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8" id="details-content">
-                <!-- Dynamically injected with 10+ photos gallery -->
+                <!-- Injected dynamically -->
             </div>
         </div>
 
@@ -232,22 +243,22 @@
     </main>
 
     <!-- Footer -->
-    <footer class="bg-brand-dark text-gray-400 py-10 mt-20 border-t border-gray-800">
+    <footer class="bg-brand-dark text-gray-400 py-12 mt-20 border-t border-gray-800">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center text-xs">
             <p>&copy; 2026 GulfBooking Dubai. All rights reserved.</p>
-            <p class="mt-2 sm:mt-0">Direct Hotel Booking Platform</p>
+            <p class="mt-2 sm:mt-0 text-gray-500">Direct Local Hotel Booking Platform</p>
         </div>
     </footer>
 
     <!-- Auth Modal -->
     <div id="auth-modal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
-        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl relative">
-            <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
-                <i class="fa-solid fa-xmark text-lg"></i>
+        <div class="bg-white rounded-2xl max-w-md w-full p-8 shadow-2xl relative">
+            <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg">
+                <i class="fa-solid fa-xmark"></i>
             </button>
             <div class="flex border-b border-gray-200 mb-6">
-                <button id="tab-login" onclick="setAuthMode('login')" class="flex-1 pb-3 font-bold text-brand-blue border-b-2 border-brand-blue text-center">Sign In</button>
-                <button id="tab-register" onclick="setAuthMode('register')" class="flex-1 pb-3 font-bold text-gray-400 text-center">Create Account</button>
+                <button id="tab-login" onclick="setAuthMode('login')" class="flex-1 pb-3 font-bold text-brand-blue border-b-2 border-brand-blue text-center text-sm">Sign In</button>
+                <button id="tab-register" onclick="setAuthMode('register')" class="flex-1 pb-3 font-bold text-gray-400 text-center text-sm">Create Account</button>
             </div>
             <form id="auth-form" onsubmit="handleAuthSubmit(event)" class="space-y-4">
                 <div id="name-field-box" class="hidden">
@@ -262,31 +273,29 @@
                     <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Password</label>
                     <input type="password" id="auth-pass" required placeholder="••••••••" class="w-full text-sm border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-blue">
                 </div>
-                <button type="submit" id="auth-submit-btn" class="w-full bg-brand-blue text-white font-bold py-3 rounded-xl transition shadow-md">Sign In</button>
+                <button type="submit" id="auth-submit-btn" class="w-full bg-brand-blue hover:bg-blue-950 text-white font-bold py-3.5 rounded-xl transition shadow-md">Sign In</button>
             </form>
         </div>
     </div>
 
-    <!-- Application Script Logic -->
+    <!-- Script Logic -->
     <script>
         let hotelsCache = [];
         let currentUser = null;
         let authModeState = 'login';
 
         // ⚠️ CHANGE THIS TO YOUR EXACT ADMIN EMAIL ADDRESS
-        const ADMIN_EMAIL = "abdulrafay@example.com"; 
+        const ADMIN_EMAIL = "abdulrafay@example.com";
 
         document.addEventListener('firebase-ready', () => {
             const { auth, db, onAuthStateChanged, collection, onSnapshot } = window.fb;
 
-            // Track persistent auth state across browser visits/refreshes
             onAuthStateChanged(auth, (user) => {
                 currentUser = user;
                 updateHeaderAuthUI(user);
                 checkAdminAccess(user);
             });
 
-            // REAL-TIME LISTENER: Updates hotel data instantly across all users when you add/delete
             onSnapshot(collection(db, "hotels"), (snapshot) => {
                 hotelsCache = [];
                 snapshot.forEach((docSnap) => {
@@ -320,7 +329,6 @@
                 document.getElementById('view-home').classList.remove('hidden');
                 renderCustomerHotels();
             } else if(viewId === 'admin') {
-                // Security check
                 if(!currentUser || currentUser.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
                     alert('Access denied. Admin privileges required.');
                     switchView('home');
@@ -334,18 +342,17 @@
             window.scrollTo({top: 0, behavior: 'smooth'});
         }
 
-        // Show/Hide Manage Hotels button based on whether logged-in user is the admin
         function checkAdminAccess(user) {
             const adminNav = document.getElementById('admin-nav-container');
             if(user && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
                 adminNav.innerHTML = `
-                    <button onclick="switchView('admin')" class="bg-blue-900/80 hover:bg-blue-900 text-blue-200 hover:text-white px-3.5 py-2 rounded-lg text-xs font-semibold transition border border-blue-700 flex items-center space-x-1.5 shadow-sm">
+                    <button onclick="switchView('admin')" class="bg-blue-900/90 hover:bg-blue-900 text-blue-100 hover:text-white px-3.5 py-2.5 rounded-xl text-xs font-bold transition border border-blue-600 flex items-center space-x-1.5 shadow-sm">
                         <i class="fa-solid fa-gear text-brand-gold"></i>
                         <span>Manage Hotels</span>
                     </button>
                 `;
             } else {
-                adminNav.innerHTML = ''; // Completely hidden for regular customers!
+                adminNav.innerHTML = '';
             }
         }
 
@@ -354,11 +361,11 @@
             container.innerHTML = '';
             
             const listToRender = filteredList || hotelsCache;
-            document.getElementById('property-count-text').innerText = `Showing ${listToRender.length} registered properties`;
+            document.getElementById('property-count-text').innerText = `Showing ${listToRender.length} verified properties`;
 
             if(listToRender.length === 0) {
                 container.innerHTML = `
-                    <div class="col-span-full bg-white p-12 rounded-2xl text-center border border-dashed border-gray-300">
+                    <div class="col-span-full bg-white p-12 rounded-2xl text-center border border-dashed border-gray-300 shadow-sm">
                         <i class="fa-solid fa-hotel text-4xl text-gray-300 mb-3"></i>
                         <h3 class="text-lg font-bold text-gray-700">No hotels available right now</h3>
                         <p class="text-xs text-gray-500 mt-1">Please check back soon as our team adds verified Dubai stays.</p>
@@ -368,25 +375,34 @@
 
             listToRender.forEach(hotel => {
                 const card = document.createElement('div');
-                card.className = "bg-white rounded-2xl shadow-sm border border-gray-200 hover:shadow-md transition overflow-hidden flex flex-col justify-between cursor-pointer";
+                card.className = "bg-white rounded-2xl shadow-sm border border-gray-200/80 hover:shadow-xl transition duration-300 overflow-hidden flex flex-col justify-between cursor-pointer group";
                 card.onclick = () => showHotelDetails(hotel.id);
                 card.innerHTML = `
                     <div>
-                        <div class="h-52 relative">
-                            <img src="${hotel.mainImage}" alt="${hotel.name}" class="w-full h-full object-cover">
-                            <span class="absolute top-3 right-3 bg-brand-blue text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow">
-                                AED ${hotel.price} / night
-                            </span>
+                        <div class="h-56 relative overflow-hidden">
+                            <img src="${hotel.mainImage}" alt="${hotel.name}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                            <div class="absolute top-3 left-3 bg-brand-blue/90 backdrop-blur-sm text-white text-[10px] font-bold px-2.5 py-1 rounded-md shadow">
+                                Genius Property
+                            </div>
+                            <div class="absolute bottom-3 right-3 bg-brand-blue text-white text-xs font-extrabold px-3 py-1.5 rounded-xl shadow-md">
+                                AED ${hotel.price} <span class="text-[10px] font-normal text-blue-200">/ night</span>
+                            </div>
                         </div>
                         <div class="p-5">
-                            <h3 class="text-lg font-bold text-gray-900">${hotel.name}</h3>
+                            <div class="flex justify-between items-start">
+                                <h3 class="text-lg font-extrabold text-gray-900 group-hover:text-brand-blue transition">${hotel.name}</h3>
+                                <div class="flex items-center space-x-1 bg-amber-50 text-amber-700 px-2 py-0.5 rounded-md text-xs font-bold border border-amber-200">
+                                    <i class="fa-solid fa-star text-[10px]"></i>
+                                    <span>9.2</span>
+                                </div>
+                            </div>
                             <p class="text-xs text-gray-500 mt-1"><i class="fa-solid fa-location-dot text-gray-400 mr-1"></i>${hotel.location}</p>
-                            <p class="text-xs text-gray-600 mt-3 line-clamp-2">${hotel.desc}</p>
+                            <p class="text-xs text-gray-600 mt-3 line-clamp-2 leading-relaxed">${hotel.desc}</p>
                         </div>
                     </div>
-                    <div class="p-5 pt-0 flex justify-between items-center">
+                    <div class="p-5 pt-0 flex justify-between items-center border-t border-gray-100 mt-2">
                         <span class="text-xs text-emerald-600 font-bold"><i class="fa-solid fa-check-circle mr-1"></i> Free Cancellation</span>
-                        <span class="text-xs font-bold text-brand-blue hover:underline">View Room & Book →</span>
+                        <span class="text-xs font-bold text-brand-blue group-hover:underline">View Gallery & Book →</span>
                     </div>
                 `;
                 container.appendChild(card);
@@ -410,7 +426,7 @@
             if(hotel.photos && hotel.photos.length > 0) {
                 hotel.photos.forEach(photoUrl => {
                     if(photoUrl.trim() !== '') {
-                        galleryHTML += `<div class="rounded-xl overflow-hidden shadow-sm h-48"><img src="${photoUrl}" class="w-full h-full object-cover hover:scale-105 transition duration-300"></div>`;
+                        galleryHTML += `<div class="rounded-xl overflow-hidden shadow-sm h-48 bg-gray-100"><img src="${photoUrl}" class="w-full h-full object-cover hover:scale-105 transition duration-300"></div>`;
                     }
                 });
             }
@@ -422,28 +438,36 @@
                     <span>Back to all properties</span>
                 </button>
 
-                <div class="mb-6">
-                    <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900">${hotel.name}</h1>
-                    <p class="text-sm text-gray-500 mt-1"><i class="fa-solid fa-location-dot text-gray-400 mr-1"></i>${hotel.location}</p>
+                <div class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                    <div>
+                        <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900">${hotel.name}</h1>
+                        <p class="text-sm text-gray-500 mt-1"><i class="fa-solid fa-location-dot text-gray-400 mr-1"></i>${hotel.location}</p>
+                    </div>
+                    <div class="mt-4 sm:mt-0 bg-brand-blue text-white px-4 py-2 rounded-xl text-center">
+                        <span class="text-[10px] text-blue-200 block uppercase font-bold">Price per night</span>
+                        <span class="text-xl font-extrabold">AED ${hotel.price}</span>
+                    </div>
                 </div>
 
-                <div class="mb-8">
-                    <div class="h-96 rounded-2xl overflow-hidden shadow-sm mb-4">
+                <!-- Gallery Grid -->
+                <div class="mb-10">
+                    <div class="h-[400px] rounded-2xl overflow-hidden shadow-md mb-4 bg-gray-100">
                         <img src="${hotel.mainImage}" class="w-full h-full object-cover">
                     </div>
-                    <h3 class="text-sm font-bold text-gray-700 uppercase mb-3"><i class="fa-solid fa-images mr-1"></i> Full Room & Hotel Gallery (${hotel.photos ? hotel.photos.filter(p=>p).length : 0} photos)</h3>
+                    <h3 class="text-sm font-extrabold text-gray-800 uppercase tracking-wide mb-3"><i class="fa-solid fa-images mr-1 text-brand-blue"></i> Full Room & Hotel Gallery (${hotel.photos ? hotel.photos.filter(p=>p).length : 0} photos)</h3>
                     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
                         ${galleryHTML || '<p class="text-xs text-gray-400">No additional gallery photos added.</p>'}
                     </div>
                 </div>
 
+                <!-- Details & Booking Box -->
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <div class="lg:col-span-2 space-y-6">
-                        <div class="bg-white p-6 rounded-2xl border border-gray-200">
+                        <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
                             <h3 class="text-lg font-bold text-gray-900 mb-3">About this room & property</h3>
                             <p class="text-sm text-gray-600 leading-relaxed">${hotel.desc}</p>
                         </div>
-                        <div class="bg-white p-6 rounded-2xl border border-gray-200">
+                        <div class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
                             <h3 class="text-lg font-bold text-gray-900 mb-4">Property Amenities</h3>
                             <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs font-semibold text-gray-700">
                                 <div><i class="fa-solid fa-wifi text-brand-blue mr-2"></i> Free High-Speed Wi-Fi</div>
@@ -456,14 +480,14 @@
                         </div>
                     </div>
 
-                    <div class="bg-blue-50 p-6 rounded-2xl border border-blue-100 h-fit space-y-4">
+                    <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-2xl border border-blue-100 h-fit space-y-4 shadow-sm">
                         <div>
-                            <span class="text-xs text-gray-500 block">Price per night</span>
+                            <span class="text-xs text-gray-500 block">Total Stay Pricing</span>
                             <div class="text-3xl font-extrabold text-gray-900">AED ${hotel.price}</div>
-                            <span class="text-[11px] text-emerald-700 font-semibold">Includes taxes and charges</span>
+                            <span class="text-[11px] text-emerald-700 font-semibold"><i class="fa-solid fa-check mr-1"></i> Includes all taxes & charges</span>
                         </div>
                         <hr class="border-blue-200">
-                        <button onclick="handleBookingAction()" class="w-full bg-brand-gold hover:bg-amber-400 text-brand-dark font-bold py-3 rounded-xl transition shadow-md">
+                        <button onclick="handleBookingAction()" class="w-full bg-brand-gold hover:bg-amber-400 text-brand-dark font-extrabold py-3.5 rounded-xl transition shadow-md">
                             Book Now & Pay at Hotel
                         </button>
                     </div>
@@ -572,14 +596,14 @@
             const submitBtn = document.getElementById('auth-submit-btn');
 
             if(mode === 'login') {
-                loginTab.className = "flex-1 pb-3 font-bold text-brand-blue border-b-2 border-brand-blue text-center";
-                regTab.className = "flex-1 pb-3 font-bold text-gray-400 text-center";
+                loginTab.className = "flex-1 pb-3 font-bold text-brand-blue border-b-2 border-brand-blue text-center text-sm";
+                regTab.className = "flex-1 pb-3 font-bold text-gray-400 text-center text-sm";
                 nameBox.classList.add('hidden');
                 submitBtn.innerText = "Sign In";
             } else {
-                regTab.className = "flex-1 pb-3 font-bold text-brand-blue border-b-2 border-brand-blue text-center";
-                loginTab.className = "flex-1 pb-3 font-bold text-gray-400 text-center";
-                nameBox.classList.add('hidden');
+                regTab.className = "flex-1 pb-3 font-bold text-brand-blue border-b-2 border-brand-blue text-center text-sm";
+                loginTab.className = "flex-1 pb-3 font-bold text-gray-400 text-center text-sm";
+                nameBox.classList.remove('hidden');
                 submitBtn.innerText = "Create Account";
             }
         }
@@ -619,22 +643,22 @@
             if(user) {
                 const displayName = user.displayName || user.email.split('@')[0];
                 container.innerHTML = `
-                    <div class="flex items-center space-x-3 bg-blue-900/80 px-3 py-1.5 rounded-xl border border-blue-700">
-                        <div class="bg-brand-gold text-brand-dark font-bold text-xs w-7 h-7 rounded-full flex items-center justify-center">
+                    <div class="flex items-center space-x-3 bg-blue-900/80 px-3.5 py-2 rounded-xl border border-blue-600 shadow-sm">
+                        <div class="bg-brand-gold text-brand-dark font-extrabold text-xs w-7 h-7 rounded-full flex items-center justify-center">
                             ${displayName.charAt(0).toUpperCase()}
                         </div>
                         <div class="hidden sm:block text-left text-xs">
-                            <span class="block font-bold text-white">Hi, ${displayName}</span>
+                            <span class="block font-extrabold text-white">Hi, ${displayName}</span>
                             <span class="block text-[10px] text-blue-200">Session Active</span>
                         </div>
-                        <button onclick="handleSignOut()" title="Sign Out" class="text-blue-300 hover:text-white text-xs ml-2 pl-2 border-l border-blue-700">
+                        <button onclick="handleSignOut()" title="Sign Out" class="text-blue-300 hover:text-white text-xs ml-2 pl-2 border-l border-blue-600">
                             <i class="fa-solid fa-right-from-bracket"></i>
                         </button>
                     </div>
                 `;
             } else {
                 container.innerHTML = `
-                    <button onclick="openAuthModal('login')" class="bg-brand-gold hover:bg-amber-400 text-brand-dark px-4 py-2 rounded-lg text-sm font-bold transition shadow-sm">
+                    <button onclick="openAuthModal('login')" class="bg-brand-gold hover:bg-amber-400 text-brand-dark px-5 py-2.5 rounded-xl text-sm font-bold transition shadow-md">
                         Sign In / Register
                     </button>
                 `;
