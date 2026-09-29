@@ -108,7 +108,7 @@
                         </p>
                     </div>
 
-                    <!-- Cleaned Search Bar Box (No hardcoded text inside date input) -->
+                    <!-- Clean Search Bar Box -->
                     <div class="bg-brand-gold p-2 rounded-2xl shadow-2xl">
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-2 bg-white p-2 rounded-xl">
                             <div class="flex items-center space-x-3 px-3 py-3 rounded-lg hover:bg-gray-50 transition">
@@ -137,21 +137,16 @@
             <!-- Hotel Listings Grid Section -->
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-10 mb-20">
                 
-                <!-- Promotional Event Banner: Book Now & Get 10% Off -->
-                <div class="bg-gradient-to-r from-brand-blue via-blue-900 to-brand-darkblue text-white rounded-2xl p-6 sm:p-8 shadow-lg mb-8 flex flex-col md:flex-row justify-between items-center gap-6 border border-blue-500/30">
-                    <div class="flex items-center space-x-4">
-                        <div class="bg-brand-gold text-brand-dark w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-extrabold shadow-inner shrink-0">
-                            <i class="fa-solid fa-tags"></i>
-                        </div>
-                        <div>
-                            <span class="bg-brand-gold/20 text-brand-gold border border-brand-gold/30 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider inline-block mb-1">Special Limited Offer</span>
-                            <h3 class="text-xl sm:text-2xl font-extrabold tracking-tight">Book Now & Get 10% Off Your Stay!</h3>
-                            <p class="text-xs text-blue-200 mt-0.5">Apply our automatic seasonal voucher during checkout and enjoy lower rates across all Dubai properties.</p>
-                        </div>
+                <!-- Promotional Banner (No Button, 10% Discount Catch) -->
+                <div class="bg-gradient-to-r from-brand-blue via-blue-900 to-brand-darkblue text-white rounded-2xl p-6 sm:p-8 shadow-lg mb-8 flex items-center space-x-6 border border-blue-500/30">
+                    <div class="bg-brand-gold text-brand-dark w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-extrabold shadow-inner shrink-0">
+                        <i class="fa-solid fa-tags"></i>
                     </div>
-                    <button onclick="applyGlobalDiscount()" class="bg-brand-gold hover:bg-amber-400 text-brand-dark font-extrabold px-6 py-3 rounded-xl transition shadow-md text-sm shrink-0 whitespace-nowrap">
-                        <i class="fa-solid fa-bolt mr-1"></i> Claim 10% Off Voucher
-                    </button>
+                    <div>
+                        <span class="bg-brand-gold/20 text-brand-gold border border-brand-gold/30 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider inline-block mb-1">Limited Special Offer</span>
+                        <h3 class="text-xl sm:text-2xl font-extrabold tracking-tight">Book Now & Get 10% Off Automatically!</h3>
+                        <p class="text-xs text-blue-200 mt-0.5">Enjoy an automatic 10% discount applied to your final bill on all luxury stays across Dubai.</p>
+                    </div>
                 </div>
 
                 <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200/80 mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -217,11 +212,11 @@
                             </div>
                         </div>
 
-                        <!-- Bill Calculation Box (24-Hour Nights with 10% Discount Integration) -->
+                        <!-- Bill Calculation Box (24-Hour Nights with Automatic 10% Discount) -->
                         <div class="bg-gray-50 p-6 rounded-2xl border border-gray-200 space-y-3">
                             <div class="flex justify-between items-center mb-2">
                                 <h4 class="font-extrabold text-sm text-gray-900 uppercase tracking-wider">Bill Summary (24-Hour Calculation)</h4>
-                                <span id="discount-badge" class="hidden bg-emerald-100 text-emerald-800 text-[10px] font-extrabold px-2.5 py-1 rounded-full"><i class="fa-solid fa-tag mr-1"></i> 10% Promo Applied!</span>
+                                <span class="bg-emerald-100 text-emerald-800 text-[10px] font-extrabold px-2.5 py-1 rounded-full"><i class="fa-solid fa-tag mr-1"></i> 10% Promo Applied!</span>
                             </div>
                             <div class="flex justify-between text-sm font-semibold text-gray-600">
                                 <span>Total Nights (24-Hour Periods):</span>
@@ -231,7 +226,7 @@
                                 <span>Price per Night:</span>
                                 <span id="bill-per-night">AED 0</span>
                             </div>
-                            <div id="discount-row" class="hidden flex justify-between text-sm font-semibold text-emerald-600">
+                            <div class="flex justify-between text-sm font-semibold text-emerald-600">
                                 <span>10% Promotional Discount:</span>
                                 <span id="bill-discount-amount">- AED 0</span>
                             </div>
@@ -365,6 +360,43 @@
         </div>
     </footer>
 
+    <!-- ASK TEAM ASSISTANCE MODAL -->
+    <div id="assistance-modal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
+        <div class="bg-white rounded-2xl max-w-md w-full p-8 shadow-2xl relative">
+            <button onclick="closeAssistanceModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
+            <h3 class="text-xl font-extrabold text-gray-900 mb-2 flex items-center"><i class="fa-solid fa-headset text-brand-blue mr-2"></i> Ask Team to Book</h3>
+            <p class="text-xs text-gray-500 mb-6" id="assistance-hotel-subtitle">Fill out your details and our booking agents will reserve your stay manually.</p>
+            
+            <form onsubmit="submitAssistanceRequest(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Your Full Name</label>
+                    <input type="text" id="assist-name" required placeholder="Abdul Rafay" class="w-full text-sm border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-blue">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Phone / WhatsApp Number</label>
+                    <input type="text" id="assist-phone" required placeholder="+971 50 123 4567" class="w-full text-sm border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-blue">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Check-in Date</label>
+                        <input type="date" id="assist-checkin" required class="w-full text-xs border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-blue">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Check-out Date</label>
+                        <input type="date" id="assist-checkout" required class="w-full text-xs border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-blue">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Additional Requirements / Notes</label>
+                    <textarea id="assist-notes" rows="2" placeholder="Airport pickup, extra bed, etc." class="w-full text-sm border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-blue"></textarea>
+                </div>
+                <button type="submit" id="assist-submit-btn" class="w-full bg-brand-blue hover:bg-blue-900 text-white font-extrabold py-3.5 rounded-xl transition shadow-md">
+                    Send Request to Team
+                </button>
+            </form>
+        </div>
+    </div>
+
     <!-- AUTH MODAL -->
     <div id="auth-modal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
         <div class="bg-white rounded-2xl max-w-md w-full p-8 shadow-2xl relative">
@@ -398,7 +430,7 @@
         let currentUser = null;
         let authModeState = 'login';
         let currentHotelForBooking = null;
-        let isPromoActive = false; // Tracks if the 10% discount is applied
+        let hotelForAssistance = null;
 
         const ADMIN_EMAIL = "abdulrafay@example.com";
 
@@ -525,10 +557,9 @@
 
             listToRender.forEach(hotel => {
                 const card = document.createElement('div');
-                card.className = "bg-white rounded-2xl shadow-sm border border-gray-200/80 hover:shadow-xl transition duration-300 overflow-hidden flex flex-col justify-between cursor-pointer group";
-                card.onclick = () => showHotelDetails(hotel.id);
+                card.className = "bg-white rounded-2xl shadow-sm border border-gray-200/80 hover:shadow-xl transition duration-300 overflow-hidden flex flex-col justify-between group";
                 card.innerHTML = `
-                    <div>
+                    <div class="cursor-pointer" onclick="showHotelDetails('${hotel.id}')">
                         <div class="h-56 relative overflow-hidden">
                             <img src="${hotel.mainImage}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
                             <div class="absolute top-3 left-3 bg-brand-blue/90 text-white text-[10px] font-bold px-2.5 py-1 rounded-md shadow">Genius Property</div>
@@ -540,9 +571,15 @@
                             <p class="text-xs text-gray-600 mt-3 line-clamp-2 leading-relaxed">${hotel.desc}</p>
                         </div>
                     </div>
-                    <div class="p-5 pt-0 flex justify-between items-center border-t border-gray-100 mt-2">
-                        <span class="text-xs text-emerald-600 font-bold"><i class="fa-solid fa-check-circle mr-1"></i> Free Cancellation</span>
-                        <span class="text-xs font-bold text-brand-blue group-hover:underline">View Gallery & Book →</span>
+                    <div class="p-5 pt-0 space-y-2.5 border-t border-gray-100 mt-2">
+                        <div class="flex justify-between items-center pt-2 text-xs">
+                            <span class="text-emerald-600 font-bold"><i class="fa-solid fa-check-circle mr-1"></i> Free Cancellation</span>
+                            <span class="font-bold text-brand-blue cursor-pointer hover:underline" onclick="showHotelDetails('${hotel.id}')">View Gallery →</span>
+                        </div>
+                        <button onclick="openAssistanceModal('${hotel.id}')" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-2.5 px-4 rounded-xl transition text-xs flex items-center justify-center space-x-2 border border-gray-300">
+                            <i class="fa-solid fa-headset text-brand-blue"></i>
+                            <span>Ask Team to Book My Stay</span>
+                        </button>
                     </div>
                 `;
                 container.appendChild(card);
@@ -555,9 +592,61 @@
             renderCustomerHotels(filtered);
         }
 
-        function applyGlobalDiscount() {
-            isPromoActive = true;
-            alert('🎉 Success! The 10% Off Voucher has been activated. It will be automatically applied to your bill when you book any hotel.');
+        // ================= ASK TEAM ASSISTANCE MODAL =================
+        function openAssistanceModal(hotelId) {
+            hotelForAssistance = hotelsCache.find(h => h.id === hotelId);
+            if(!hotelForAssistance) return;
+
+            document.getElementById('assistance-hotel-subtitle').innerText = `Request manual booking assistance for ${hotelForAssistance.name} (${hotelForAssistance.location}).`;
+            const today = new Date().toISOString().split('T')[0];
+            const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+            document.getElementById('assist-checkin').value = today;
+            document.getElementById('assist-checkout').value = tomorrow;
+
+            document.getElementById('assistance-modal').classList.remove('hidden');
+        }
+
+        function closeAssistanceModal() {
+            document.getElementById('assistance-modal').classList.add('hidden');
+        }
+
+        async function submitAssistanceRequest(e) {
+            e.preventDefault();
+            const { db, collection, addDoc } = window.fb;
+            const name = document.getElementById('assist-name').value;
+            const phone = document.getElementById('assist-phone').value;
+            const checkin = document.getElementById('assist-checkin').value;
+            const checkout = document.getElementById('assist-checkout').value;
+            const notes = document.getElementById('assist-notes').value;
+
+            const btn = document.getElementById('assist-submit-btn');
+            btn.innerText = "Sending Request...";
+            btn.disabled = true;
+
+            try {
+                await addDoc(collection(db, "bookings"), {
+                    userId: currentUser ? currentUser.uid : "guest-assisted",
+                    userEmail: currentUser ? currentUser.email : `${name.replace(/\s+/g,'')}@guest.com`,
+                    hotelName: hotelForAssistance.name + " (Team Assisted Request)",
+                    hotelLocation: hotelForAssistance.location,
+                    checkin, checkout, time: "14:00", guests: "2",
+                    totalBill: hotelForAssistance.price,
+                    nights: "1 night",
+                    receiptUrl: "https://via.placeholder.com/150?text=Assisted+Booking+Requested",
+                    status: "Pending Team Review",
+                    notes, phone, customerName: name,
+                    createdAt: Date.now()
+                });
+
+                closeAssistanceModal();
+                alert('Request submitted successfully! Our support team will contact you shortly to complete your booking.');
+                if(currentUser) switchView('my-bookings');
+            } catch(err) {
+                alert('Error submitting request: ' + err.message);
+            } finally {
+                btn.innerText = "Send Request to Team";
+                btn.disabled = false;
+            }
         }
 
         function showHotelDetails(hotelId) {
@@ -605,7 +694,7 @@
                         </div>
                         <hr class="border-blue-200">
                         <button onclick="openCheckoutPage('${hotel.id}')" class="w-full bg-brand-gold hover:bg-amber-400 text-brand-dark font-extrabold py-3.5 rounded-xl transition shadow-md">
-                            Book Now & Proceed to Bill ${isPromoActive ? '(10% Off Active)' : ''}
+                            Book Now & Proceed to Bill (10% Off)
                         </button>
                     </div>
                 </div>
@@ -651,25 +740,12 @@
             if(nights < 1) nights = 1;
 
             let subtotal = nights * currentHotelForBooking.price;
-            let finalTotal = subtotal;
-
-            const badge = document.getElementById('discount-badge');
-            const row = document.getElementById('discount-row');
-            const discountAmtSpan = document.getElementById('bill-discount-amount');
-
-            if(isPromoActive) {
-                let discountVal = subtotal * 0.10;
-                finalTotal = subtotal - discountVal;
-                badge.classList.remove('hidden');
-                row.classList.remove('hidden');
-                discountAmtSpan.innerText = `- AED ${discountVal.toFixed(2)}`;
-            } else {
-                badge.classList.add('hidden');
-                row.classList.add('hidden');
-            }
+            let discountVal = subtotal * 0.10; // Automatic 10% discount
+            let finalTotal = subtotal - discountVal;
 
             document.getElementById('bill-nights').innerText = `${nights} night${nights > 1 ? 's' : ''} (24-hour periods)`;
             document.getElementById('bill-per-night').innerText = `AED ${currentHotelForBooking.price}`;
+            document.getElementById('bill-discount-amount').innerText = `- AED ${discountVal.toFixed(2)}`;
             document.getElementById('bill-total').innerText = `AED ${finalTotal.toFixed(2)}`;
             return { nights, total: finalTotal };
         }
@@ -737,6 +813,7 @@
                         </div>
                         <p class="text-xs text-gray-500"><i class="fa-solid fa-calendar-days mr-1"></i> ${b.checkin} to ${b.checkout} (${b.nights}) · Time: ${b.time} · Guests: ${b.guests}</p>
                         <p class="text-xs font-bold text-gray-800 mt-2">Total Bill: AED ${b.totalBill}</p>
+                        ${b.notes ? `<p class="text-[11px] text-gray-400 mt-1">Notes: ${b.notes}</p>` : ''}
                     </div>
                     <div class="text-right text-xs">
                         <span class="text-gray-400 block mb-1">Payment Receipt</span>
@@ -764,7 +841,8 @@
                 div.innerHTML = `
                     <div>
                         <span class="font-extrabold text-brand-blue">${b.userEmail}</span> booked <strong class="text-gray-900">${b.hotelName}</strong>
-                        <p class="text-gray-500 mt-0.5">${b.checkin} to ${b.checkout} (${b.nights}) · Guests: ${b.guests} · Bill: <strong>AED ${b.totalBill}</strong></p>
+                        <p class="text-gray-500 mt-0.5">${b.checkin} to ${b.checkout} (${b.nights}) · Bill: <strong>AED ${b.totalBill}</strong> ${b.phone ? '· Ph: ' + b.phone : ''}</p>
+                        ${b.notes ? `<p class="text-[11px] text-blue-700 mt-1 font-semibold">Customer Note: ${b.notes}</p>` : ''}
                         <div class="mt-2 flex items-center space-x-2">
                             <span class="px-2 py-0.5 rounded font-bold ${badgeColor}">Status: ${b.status}</span>
                             <a href="${b.receiptUrl}" target="_blank" class="text-brand-blue font-bold underline"><i class="fa-solid fa-image mr-1"></i> View Receipt Screenshot</a>
