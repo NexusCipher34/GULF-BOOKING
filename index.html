@@ -1,21 +1,19 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GulfBooking | Dubai Luxury Stays & Hotels</title>
-    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    
+
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, getDocs, doc, deleteDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, doc, deleteDoc, updateDoc, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyChERqtRP3q3lxo7IXJhgXlv1dJdkLHetc",
@@ -31,7 +29,7 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        window.fb = { auth, db, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, collection, addDoc, getDocs, doc, deleteDoc, updateDoc, onSnapshot };
+        window.fb = { auth, db, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, collection, addDoc, doc, deleteDoc, updateDoc, onSnapshot, query, where };
         document.dispatchEvent(new Event('firebase-ready'));
     </script>
 
@@ -39,9 +37,7 @@
         tailwind.config = {
             theme: {
                 extend: {
-                    colors: {
-                        brand: { blue: '#003580', darkblue: '#00224f', gold: '#febb02', dark: '#1a1a1a' }
-                    },
+                    colors: { brand: { blue: '#003580', darkblue: '#00224f', gold: '#febb02', dark: '#1a1a1a' } },
                     fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] }
                 }
             }
@@ -49,19 +45,31 @@
     </script>
     <style>
         @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes toastIn { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes pop { 0% { transform: scale(1); } 40% { transform: scale(1.35); } 100% { transform: scale(1); } }
+        @keyframes shimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
         .animate-fade-in { animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .toast { animation: toastIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .heart-pop { animation: pop 0.35s ease; }
+        .skeleton { background: linear-gradient(90deg, #eceff3 25%, #f7f8fa 37%, #eceff3 63%); background-size: 800px 100%; animation: shimmer 1.4s infinite linear; }
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #f1f1f1; }
         ::-webkit-scrollbar-thumb { background: #003580; border-radius: 4px; }
+        input:focus-visible, button:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid #febb02; outline-offset: 2px; }
+        input[type=range] { accent-color: #003580; }
+        .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
     </style>
 </head>
 <body class="bg-[#f5f7fa] text-gray-800 font-sans antialiased min-h-screen flex flex-col justify-between">
 
-    <!-- Top Navigation Header -->
+    <!-- Toast container -->
+    <div id="toast-container" class="fixed top-20 right-3 sm:right-6 z-[100] space-y-2 w-[calc(100%-1.5rem)] sm:w-96 pointer-events-none"></div>
+
+    <!-- Header -->
     <header class="bg-brand-blue text-white sticky top-0 z-50 shadow-md">
         <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16 sm:h-20">
-                <!-- Logo -->
                 <div class="flex items-center space-x-2.5 cursor-pointer group" onclick="switchView('home')">
                     <div class="bg-brand-gold text-brand-blue font-extrabold text-lg p-2 rounded-xl flex items-center justify-center w-9 h-9 sm:w-11 sm:h-11 shadow-inner group-hover:scale-105 transition">
                         <i class="fa-solid fa-hotel"></i>
@@ -72,26 +80,23 @@
                     </div>
                 </div>
 
-                <!-- Navigation Actions -->
                 <div class="flex items-center space-x-2 sm:space-x-3">
+                    <!-- Manage button: rendered ONLY for the admin (see updateNavForUser) -->
                     <div id="admin-nav-container"></div>
                     <button onclick="switchView('my-bookings')" id="my-bookings-btn" class="hidden bg-blue-900/60 hover:bg-blue-900 text-blue-100 px-2.5 sm:px-3.5 py-2 sm:py-2.5 rounded-xl text-xs font-bold transition border border-blue-600">
                         <i class="fa-solid fa-receipt sm:mr-1"></i> <span class="hidden sm:inline">My Bookings</span>
                     </button>
                     <div id="auth-header-container">
-                        <button onclick="openAuthModal('login')" class="bg-brand-gold hover:bg-amber-400 text-brand-dark px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold transition shadow-md">
-                            Sign In
-                        </button>
+                        <button onclick="openAuthModal('login')" class="bg-brand-gold hover:bg-amber-400 text-brand-dark px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold transition shadow-md">Sign In</button>
                     </div>
                 </div>
             </div>
         </div>
     </header>
 
-    <!-- Main Dynamic Content Container -->
     <main class="flex-grow">
 
-        <!-- ================= VIEW 1: HOMEPAGE & LIVE SEARCH ================= -->
+        <!-- ================= HOME ================= -->
         <div id="view-home" class="animate-fade-in">
             <div class="relative bg-gradient-to-b from-brand-blue to-brand-darkblue text-white pb-16 sm:pb-24 pt-8 sm:pt-12 px-3 sm:px-6 lg:px-8 overflow-hidden shadow-lg">
                 <div class="absolute inset-0 opacity-15 bg-cover bg-center mix-blend-overlay" style="background-image: url('https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&w=1920&q=80')"></div>
@@ -100,886 +105,1203 @@
                         <span class="bg-brand-gold/20 text-brand-gold border border-brand-gold/30 text-[10px] sm:text-xs font-bold px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full uppercase tracking-wider inline-block mb-2 sm:mb-3 shadow-sm">
                             <i class="fa-solid fa-star mr-1"></i> Dubai's Direct Booking Network
                         </span>
-                        <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight leading-tight">
-                            Find your next stay in Dubai
-                        </h1>
-                        <p class="mt-2 sm:mt-3 text-sm sm:text-base text-blue-100 font-medium">
-                            Search low prices on luxury hotels, resorts, and apartments across Dubai with zero booking fees.
-                        </p>
+                        <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight leading-tight">Find your next stay in Dubai</h1>
+                        <p class="mt-2 sm:mt-3 text-sm sm:text-base text-blue-100 font-medium">Search low prices on luxury hotels, resorts, and apartments across Dubai with zero booking fees.</p>
                     </div>
 
-                    <!-- Live Search Bar Box -->
                     <div class="bg-brand-gold p-1.5 sm:p-2 rounded-2xl shadow-2xl">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 bg-white p-2 rounded-xl">
-                            <div class="flex items-center space-x-3 px-3 py-2.5 sm:py-3 rounded-lg hover:bg-gray-50 transition border border-gray-100">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-2 bg-white p-2 rounded-xl text-gray-800">
+                            <div class="flex items-center space-x-3 px-3 py-2.5 sm:py-3 rounded-lg hover:bg-gray-50 transition border border-gray-100 md:col-span-1">
                                 <i class="fa-solid fa-location-dot text-gray-400 text-base sm:text-lg"></i>
                                 <div class="w-full">
-                                    <label class="block text-[10px] font-extrabold text-gray-500 uppercase tracking-wider">Destination (Instant Search)</label>
-                                    <input type="text" id="search-input" oninput="filterHotelsLive()" placeholder="e.g. Downtown, Marina, Deira" class="w-full text-xs sm:text-sm font-semibold text-gray-800 focus:outline-none bg-transparent">
+                                    <label for="search-input" class="block text-[10px] font-extrabold text-gray-500 uppercase tracking-wider">Destination</label>
+                                    <input type="text" id="search-input" oninput="applyFilters()" placeholder="e.g. Downtown, Marina, Deira" class="w-full text-xs sm:text-sm font-semibold text-gray-800 focus:outline-none bg-transparent">
                                 </div>
+                                <button id="search-clear" onclick="clearSearch()" class="hidden text-gray-400 hover:text-gray-700" aria-label="Clear search"><i class="fa-solid fa-circle-xmark"></i></button>
                             </div>
                             <div class="flex items-center space-x-3 px-3 py-2.5 sm:py-3 rounded-lg hover:bg-gray-50 transition border border-gray-100">
                                 <i class="fa-solid fa-calendar-days text-gray-400 text-base sm:text-lg"></i>
                                 <div class="w-full">
-                                    <label class="block text-[10px] font-extrabold text-gray-500 uppercase tracking-wider">Check-in Date</label>
+                                    <label for="home-checkin" class="block text-[10px] font-extrabold text-gray-500 uppercase tracking-wider">Check-in</label>
                                     <input type="date" id="home-checkin" class="w-full text-xs font-semibold text-gray-800 focus:outline-none bg-transparent">
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-3 px-3 py-2.5 sm:py-3 rounded-lg hover:bg-gray-50 transition border border-gray-100">
+                                <i class="fa-solid fa-calendar-check text-gray-400 text-base sm:text-lg"></i>
+                                <div class="w-full">
+                                    <label for="home-checkout" class="block text-[10px] font-extrabold text-gray-500 uppercase tracking-wider">Check-out</label>
+                                    <input type="date" id="home-checkout" class="w-full text-xs font-semibold text-gray-800 focus:outline-none bg-transparent">
                                 </div>
                             </div>
                         </div>
                     </div>
+                    <div class="flex flex-wrap gap-2 mt-4" id="area-chips"></div>
                 </div>
             </div>
 
-            <!-- Hotel Listings Grid Section -->
             <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 mt-6 sm:mt-10 mb-20">
-                
-                <!-- Promotional Banner -->
                 <div class="bg-gradient-to-r from-brand-blue via-blue-900 to-brand-darkblue text-white rounded-2xl p-5 sm:p-8 shadow-lg mb-6 sm:mb-8 flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:space-x-6 border border-blue-500/30">
-                    <div class="bg-brand-gold text-brand-dark w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center text-xl sm:text-2xl font-extrabold shadow-inner shrink-0">
-                        <i class="fa-solid fa-tags"></i>
-                    </div>
+                    <div class="bg-brand-gold text-brand-dark w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center text-xl sm:text-2xl font-extrabold shadow-inner shrink-0"><i class="fa-solid fa-tags"></i></div>
                     <div>
                         <span class="bg-brand-gold/20 text-brand-gold border border-brand-gold/30 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider inline-block mb-1">Limited Special Offer</span>
-                        <h3 class="text-lg sm:text-2xl font-extrabold tracking-tight">Book Now & Get 10% Off Automatically!</h3>
-                        <p class="text-xs text-blue-200 mt-0.5">Enjoy an automatic 10% discount applied to your final bill on all luxury stays across Dubai.</p>
+                        <h3 class="text-lg sm:text-2xl font-extrabold tracking-tight">Book now and get 10% off automatically</h3>
+                        <p class="text-xs text-blue-200 mt-0.5">The discount is applied to your final bill on every stay across Dubai.</p>
                     </div>
                 </div>
 
-                <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-200/80 mb-6 sm:mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                    <div>
-                        <h2 class="text-xl sm:text-2xl font-extrabold text-gray-900">Explore Dubai Properties</h2>
-                        <p class="text-xs text-gray-500 mt-0.5" id="property-count-text">Loading registered stays from database...</p>
+                <!-- Toolbar -->
+                <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-gray-200/80 mb-6 sm:mb-8 space-y-4">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                        <div>
+                            <h2 class="text-xl sm:text-2xl font-extrabold text-gray-900">Explore Dubai properties</h2>
+                            <p class="text-xs text-gray-500 mt-0.5" id="property-count-text">Loading stays…</p>
+                        </div>
+                        <div class="flex items-center gap-2 w-full sm:w-auto">
+                            <button id="saved-toggle" onclick="toggleSavedOnly()" class="flex-1 sm:flex-none text-xs font-bold px-3.5 py-2.5 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 transition">
+                                <i class="fa-regular fa-heart text-red-500 mr-1"></i> Saved <span id="saved-count" class="ml-1 text-gray-400">0</span>
+                            </button>
+                            <select id="sort-select" onchange="applyFilters()" class="flex-1 sm:flex-none text-xs font-bold px-3 py-2.5 rounded-xl border border-gray-300 bg-white" aria-label="Sort properties">
+                                <option value="featured">Sort: Newest</option>
+                                <option value="price-asc">Price: low to high</option>
+                                <option value="price-desc">Price: high to low</option>
+                                <option value="name">Name A–Z</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 pt-3 border-t border-gray-100">
+                        <label for="price-range" class="text-xs font-bold text-gray-700 whitespace-nowrap">Max price per night: <span id="price-range-label" class="text-brand-blue">Any</span></label>
+                        <input type="range" id="price-range" min="0" max="1000" step="10" value="1000" oninput="applyFilters()" class="w-full">
+                        <button onclick="resetFilters()" class="text-xs font-bold text-brand-blue hover:underline whitespace-nowrap">Reset filters</button>
                     </div>
                 </div>
+
                 <div id="customer-hotel-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6"></div>
             </div>
         </div>
 
-        <!-- ================= VIEW 2: HOTEL DETAILS & GALLERY ================= -->
+        <!-- ================= DETAILS ================= -->
         <div id="view-details" class="hidden animate-fade-in py-6 sm:py-10 bg-white">
             <div class="max-w-6xl mx-auto px-3 sm:px-6 lg:px-8" id="details-content"></div>
         </div>
 
-        <!-- ================= VIEW 3: FULL-SCREEN CHECKOUT & PAYMENT INTERFACE ================= -->
+        <!-- ================= CHECKOUT ================= -->
         <div id="view-checkout" class="hidden animate-fade-in py-6 sm:py-12 bg-gray-50">
             <div class="max-w-4xl mx-auto px-3 sm:px-6 lg:px-8">
-                <button onclick="switchView('details')" class="mb-4 sm:mb-6 text-xs font-bold text-brand-blue hover:underline flex items-center space-x-1">
-                    <i class="fa-solid fa-arrow-left"></i>
-                    <span>Back to hotel details</span>
+                <button onclick="backToDetails()" class="mb-4 sm:mb-6 text-xs font-bold text-brand-blue hover:underline flex items-center space-x-1">
+                    <i class="fa-solid fa-arrow-left"></i><span>Back to hotel details</span>
                 </button>
 
                 <div class="bg-white p-5 sm:p-10 rounded-3xl shadow-sm border border-gray-200 space-y-6 sm:space-y-8">
                     <div class="flex items-center space-x-3 sm:space-x-4 pb-4 sm:pb-6 border-b border-gray-100">
-                        <div class="bg-brand-blue text-brand-gold w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center text-xl sm:text-2xl font-bold shadow-md shrink-0">
-                            <i class="fa-solid fa-file-invoice-dollar"></i>
-                        </div>
+                        <div class="bg-brand-blue text-brand-gold w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center text-xl sm:text-2xl font-bold shadow-md shrink-0"><i class="fa-solid fa-file-invoice-dollar"></i></div>
                         <div>
-                            <h1 class="text-xl sm:text-2xl font-extrabold text-gray-900">Secure Checkout & Payment</h1>
-                            <p class="text-xs text-gray-500 mt-0.5">Select stay duration (24-hour periods), review bill, and provide your bank transaction ID.</p>
+                            <h1 class="text-xl sm:text-2xl font-extrabold text-gray-900">Secure checkout & payment</h1>
+                            <p class="text-xs text-gray-500 mt-0.5">Pick your dates, transfer the total, then enter your bank transaction ID.</p>
                         </div>
                     </div>
 
-                    <!-- Selected Hotel Summary -->
-                    <div id="checkout-hotel-summary" class="bg-blue-50/70 p-4 sm:p-6 rounded-2xl border border-blue-100 flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-center sm:text-left">
-                        <!-- Populated dynamically -->
-                    </div>
+                    <div id="checkout-hotel-summary" class="bg-blue-50/70 p-4 sm:p-6 rounded-2xl border border-blue-100 flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-center sm:text-left"></div>
 
-                    <form onsubmit="submitBookingOrder(event)" class="space-y-4 sm:space-y-6">
-                        <!-- Date & Time Selection -->
+                    <form onsubmit="submitBookingOrder(event)" class="space-y-4 sm:space-y-6" novalidate>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                             <div>
-                                <label class="block text-xs font-bold text-gray-700 uppercase mb-2"><i class="fa-solid fa-calendar mr-1"></i> Check-in Date</label>
-                                <input type="date" id="book-checkin" required class="w-full text-xs sm:text-sm border border-gray-300 rounded-xl px-3 sm:px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-blue bg-white" onchange="calculateBill()">
+                                <label for="book-checkin" class="block text-xs font-bold text-gray-700 uppercase mb-2"><i class="fa-solid fa-calendar mr-1"></i> Check-in date</label>
+                                <input type="date" id="book-checkin" required class="w-full text-xs sm:text-sm border border-gray-300 rounded-xl px-3 sm:px-4 py-3 bg-white" onchange="onCheckinChange()">
                             </div>
                             <div>
-                                <label class="block text-xs font-bold text-gray-700 uppercase mb-2"><i class="fa-solid fa-calendar mr-1"></i> Check-out Date</label>
-                                <input type="date" id="book-checkout" required class="w-full text-xs sm:text-sm border border-gray-300 rounded-xl px-3 sm:px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-blue bg-white" onchange="calculateBill()">
+                                <label for="book-checkout" class="block text-xs font-bold text-gray-700 uppercase mb-2"><i class="fa-solid fa-calendar mr-1"></i> Check-out date</label>
+                                <input type="date" id="book-checkout" required class="w-full text-xs sm:text-sm border border-gray-300 rounded-xl px-3 sm:px-4 py-3 bg-white" onchange="calculateBill()">
                             </div>
                         </div>
+                        <p id="date-error" class="hidden text-xs font-semibold text-red-600"></p>
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                             <div>
-                                <label class="block text-xs font-bold text-gray-700 uppercase mb-2"><i class="fa-solid fa-clock mr-1"></i> Check-in Time</label>
-                                <input type="time" id="book-time" value="14:00" required class="w-full text-xs sm:text-sm border border-gray-300 rounded-xl px-3 sm:px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-blue bg-white">
+                                <label for="book-time" class="block text-xs font-bold text-gray-700 uppercase mb-2"><i class="fa-solid fa-clock mr-1"></i> Check-in time</label>
+                                <input type="time" id="book-time" value="14:00" required class="w-full text-xs sm:text-sm border border-gray-300 rounded-xl px-3 sm:px-4 py-3 bg-white">
                             </div>
                             <div>
-                                <label class="block text-xs font-bold text-gray-700 uppercase mb-2"><i class="fa-solid fa-users mr-1"></i> Number of Guests</label>
-                                <input type="number" id="book-guests" min="1" value="2" required class="w-full text-xs sm:text-sm border border-gray-300 rounded-xl px-3 sm:px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-blue bg-white">
+                                <label class="block text-xs font-bold text-gray-700 uppercase mb-2"><i class="fa-solid fa-users mr-1"></i> Guests</label>
+                                <div class="flex items-center border border-gray-300 rounded-xl bg-white overflow-hidden">
+                                    <button type="button" onclick="stepGuests(-1)" class="px-4 py-3 text-lg font-bold text-brand-blue hover:bg-gray-100" aria-label="Fewer guests">−</button>
+                                    <input type="number" id="book-guests" min="1" max="10" value="2" required class="w-full text-center text-sm font-bold py-3 focus:outline-none" onchange="stepGuests(0)">
+                                    <button type="button" onclick="stepGuests(1)" class="px-4 py-3 text-lg font-bold text-brand-blue hover:bg-gray-100" aria-label="More guests">+</button>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Bill Calculation Box -->
+                        <!-- Bill -->
                         <div class="bg-gray-50 p-4 sm:p-6 rounded-2xl border border-gray-200 space-y-3">
                             <div class="flex justify-between items-center mb-2">
-                                <h4 class="font-extrabold text-xs sm:text-sm text-gray-900 uppercase tracking-wider">Bill Summary (24-Hour Calculation)</h4>
-                                <span class="bg-emerald-100 text-emerald-800 text-[10px] font-extrabold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full"><i class="fa-solid fa-tag mr-1"></i> 10% Off Applied!</span>
+                                <h4 class="font-extrabold text-xs sm:text-sm text-gray-900 uppercase tracking-wider">Bill summary</h4>
+                                <span class="bg-emerald-100 text-emerald-800 text-[10px] font-extrabold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full"><i class="fa-solid fa-tag mr-1"></i> 10% off applied</span>
                             </div>
-                            <div class="flex justify-between text-xs sm:text-sm font-semibold text-gray-600">
-                                <span>Total Nights (24-Hour Periods):</span>
-                                <span id="bill-nights" class="font-bold text-gray-900">1 night</span>
-                            </div>
-                            <div class="flex justify-between text-xs sm:text-sm font-semibold text-gray-600">
-                                <span>Price per Night:</span>
-                                <span id="bill-per-night">AED 0</span>
-                            </div>
-                            <div class="flex justify-between text-xs sm:text-sm font-semibold text-emerald-600">
-                                <span>10% Promotional Discount:</span>
-                                <span id="bill-discount-amount">- AED 0</span>
-                            </div>
+                            <div class="flex justify-between text-xs sm:text-sm font-semibold text-gray-600"><span>Nights (24-hour periods)</span><span id="bill-nights" class="font-bold text-gray-900">1 night</span></div>
+                            <div class="flex justify-between text-xs sm:text-sm font-semibold text-gray-600"><span>Price per night</span><span id="bill-per-night">AED 0</span></div>
+                            <div class="flex justify-between text-xs sm:text-sm font-semibold text-gray-600"><span>Subtotal</span><span id="bill-subtotal">AED 0</span></div>
+                            <div class="flex justify-between text-xs sm:text-sm font-semibold text-emerald-600"><span>10% promotional discount</span><span id="bill-discount-amount">- AED 0</span></div>
                             <hr class="border-gray-200">
                             <div class="flex justify-between items-center">
-                                <span class="font-extrabold text-sm sm:text-base text-gray-900">Total Bill Amount:</span>
+                                <span class="font-extrabold text-sm sm:text-base text-gray-900">Total to transfer</span>
                                 <span id="bill-total" class="text-xl sm:text-2xl font-extrabold text-brand-blue">AED 0</span>
                             </div>
                         </div>
 
-                        <!-- Company Account Details for Payment -->
+                        <!-- Bank details -->
                         <div class="bg-amber-50 p-4 sm:p-6 rounded-2xl border border-amber-200 space-y-3">
-                            <h4 class="font-extrabold text-xs sm:text-sm text-amber-900 uppercase tracking-wider flex items-center">
-                                <i class="fa-solid fa-building-columns mr-2 text-brand-gold"></i> Proceed to Payment - Corporate Bank Account
-                            </h4>
-                            <p class="text-xs text-amber-800">Transfer the total bill amount to the official GulfBooking corporate account below before submitting:</p>
+                            <h4 class="font-extrabold text-xs sm:text-sm text-amber-900 uppercase tracking-wider flex items-center"><i class="fa-solid fa-building-columns mr-2 text-brand-gold"></i> Step 1: transfer to our corporate account</h4>
+                            <p class="text-xs text-amber-800">Send the total amount to this account, then come back and enter your transaction ID.</p>
                             <div class="bg-white p-3 sm:p-4 rounded-xl border border-amber-300 text-[11px] sm:text-xs font-mono space-y-1 text-gray-700">
-                                <p><strong>Bank Name:</strong> Emirates NBD Dubai</p>
-                                <p><strong>Account Title:</strong> GulfBooking Tourism LLC</p>
-                                <p><strong>IBAN:</strong> AE22 0300 0001 2345 6789 01</p>
-                                <p><strong>Branch Code:</strong> 001 - Downtown Dubai</p>
+                                <p><strong>Bank:</strong> Emirates NBD Dubai</p>
+                                <p><strong>Account title:</strong> GulfBooking Tourism LLC</p>
+                                <p class="flex items-center justify-between gap-2"><span><strong>IBAN:</strong> <span id="iban-text">AE22 0300 0001 2345 6789 01</span></span>
+                                    <button type="button" onclick="copyIban()" class="shrink-0 bg-brand-blue text-white px-2.5 py-1 rounded-lg text-[10px] font-sans font-bold hover:bg-blue-900"><i class="fa-regular fa-copy mr-1"></i>Copy</button></p>
+                                <p><strong>Branch code:</strong> 001 - Downtown Dubai</p>
                             </div>
                         </div>
 
-                        <!-- Transaction ID Input Field -->
+                        <!-- Transaction ID (NOT a URL) -->
                         <div class="bg-gray-50 p-4 sm:p-6 rounded-2xl border border-gray-200 space-y-3">
-                            <label class="block text-xs font-bold text-gray-800 uppercase">
-                                <i class="fa-solid fa-receipt mr-1 text-brand-blue"></i> Bank Transfer Transaction ID / Reference Number
-                            </label>
-                            <p class="text-xs text-gray-500">After completing your bank transfer, enter your transaction reference number or ID below.</p>
-                            <input type="text" id="book-txn-id" required placeholder="e.g. TXN123456789" class="w-full text-xs sm:text-sm border border-gray-300 rounded-xl px-3 sm:px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand-blue bg-white">
+                            <label for="book-txn-id" class="block text-xs font-bold text-gray-800 uppercase"><i class="fa-solid fa-receipt mr-1 text-brand-blue"></i> Step 2: bank transaction ID</label>
+                            <p class="text-xs text-gray-500">Enter the reference number from your bank receipt. Letters and numbers only, no links.</p>
+                            <input type="text" id="book-txn-id" required maxlength="30" autocomplete="off" spellcheck="false" placeholder="e.g. TXN123456789" oninput="validateTxnLive()" class="w-full text-xs sm:text-sm font-mono border border-gray-300 rounded-xl px-3 sm:px-4 py-3 bg-white uppercase">
+                            <p id="txn-hint" class="text-[11px] font-semibold text-gray-400">6–30 characters (A–Z, 0–9, dash or slash).</p>
                         </div>
 
-                        <button type="submit" id="submit-booking-btn" class="w-full bg-brand-gold hover:bg-amber-400 text-brand-dark font-extrabold py-3.5 rounded-xl transition shadow-lg text-sm sm:text-base">
-                            Proceed to Submit Payment Proof
-                        </button>
+                        <button type="submit" id="submit-booking-btn" class="w-full bg-brand-gold hover:bg-amber-400 text-brand-dark font-extrabold py-3.5 rounded-xl transition shadow-lg text-sm sm:text-base">Submit payment details</button>
                     </form>
                 </div>
             </div>
         </div>
 
-        <!-- ================= VIEW 4: USER BOOKINGS STATUS PAGE ================= -->
+        <!-- ================= MY BOOKINGS ================= -->
         <div id="view-my-bookings" class="hidden animate-fade-in py-6 sm:py-10 bg-gray-50">
             <div class="max-w-5xl mx-auto px-3 sm:px-6 lg:px-8">
                 <h1 class="text-xl sm:text-2xl font-extrabold text-gray-900 mb-4 sm:mb-6 flex items-center space-x-2">
-                    <i class="fa-solid fa-receipt text-brand-blue"></i>
-                    <span>My Booking Reservations & Status</span>
+                    <i class="fa-solid fa-receipt text-brand-blue"></i><span>My bookings</span>
                 </h1>
                 <div id="my-bookings-list" class="space-y-4"></div>
             </div>
         </div>
 
-        <!-- ================= VIEW 5: ADMIN MANAGEMENT PANEL ================= -->
+        <!-- ================= ADMIN ================= -->
         <div id="view-admin" class="hidden animate-fade-in py-6 sm:py-10 bg-gray-100">
             <div class="max-w-6xl mx-auto px-3 sm:px-6 lg:px-8">
                 <div class="bg-brand-blue text-white p-5 sm:p-8 rounded-2xl shadow-lg mb-6 sm:mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
-                        <span class="bg-brand-gold text-brand-dark text-[10px] sm:text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider mb-2 inline-block">Private Admin Portal</span>
-                        <h1 class="text-2xl sm:text-3xl font-extrabold">Hotel Management & Customer Bookings</h1>
+                        <span class="bg-brand-gold text-brand-dark text-[10px] sm:text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider mb-2 inline-block"><i class="fa-solid fa-lock mr-1"></i> Admin only</span>
+                        <h1 class="text-2xl sm:text-3xl font-extrabold">Hotel management & customer bookings</h1>
                     </div>
-                    <button onclick="switchView('home')" class="bg-white/10 hover:bg-white/20 text-white border border-white/30 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition">
-                        <i class="fa-solid fa-arrow-left mr-2"></i> View Website
-                    </button>
+                    <button onclick="switchView('home')" class="bg-white/10 hover:bg-white/20 text-white border border-white/30 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition"><i class="fa-solid fa-arrow-left mr-2"></i> View website</button>
                 </div>
+
+                <!-- Stats -->
+                <div id="admin-stats" class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6"></div>
 
                 <div class="flex space-x-2 sm:space-x-4 mb-6">
-                    <button onclick="switchAdminTab('hotels')" id="admin-tab-hotels-btn" class="bg-brand-blue text-white px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow">Manage Hotels</button>
-                    <button onclick="switchAdminTab('bookings')" id="admin-tab-bookings-btn" class="bg-white text-gray-700 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow border">Customer Bookings & Payments</button>
+                    <button onclick="switchAdminTab('hotels')" id="admin-tab-hotels-btn" class="bg-brand-blue text-white px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow">Manage hotels</button>
+                    <button onclick="switchAdminTab('bookings')" id="admin-tab-bookings-btn" class="bg-white text-gray-700 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow border">Bookings & payments <span id="pending-badge" class="hidden ml-1 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">0</span></button>
                 </div>
 
-                <!-- Tab 1: Hotels -->
                 <div id="admin-section-hotels" class="space-y-6 sm:space-y-8">
                     <div class="bg-white p-5 sm:p-8 rounded-2xl shadow-sm border border-gray-200">
                         <h3 class="text-base sm:text-lg font-bold text-gray-900 mb-4 sm:mb-6 flex items-center space-x-2 pb-3 border-b border-gray-100">
-                            <i class="fa-solid fa-circle-plus text-brand-blue"></i>
-                            <span>Register New Hotel & Room Photos</span>
+                            <i class="fa-solid fa-circle-plus text-brand-blue"></i><span id="hotel-form-title">Register new hotel & room photos</span>
                         </h3>
-                        <form id="hotel-form" onsubmit="handleAddNewHotel(event)" class="space-y-4 sm:space-y-6">
+                        <form id="hotel-form" onsubmit="handleSaveHotel(event)" class="space-y-4 sm:space-y-6">
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
                                 <div>
-                                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Hotel Name</label>
-                                    <input type="text" id="admin-name" required placeholder="e.g. Premier Inn Dubai" class="w-full text-xs sm:text-sm border border-gray-300 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-brand-blue focus:outline-none">
+                                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Hotel name</label>
+                                    <input type="text" id="admin-name" required placeholder="e.g. Premier Inn Dubai" class="w-full text-xs sm:text-sm border border-gray-300 rounded-lg px-3 py-2.5">
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Dubai Location / Area</label>
-                                    <input type="text" id="admin-location" required placeholder="e.g. Al Jaddaf, Dubai" class="w-full text-xs sm:text-sm border border-gray-300 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-brand-blue focus:outline-none">
+                                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Dubai location / area</label>
+                                    <input type="text" id="admin-location" required placeholder="e.g. Al Jaddaf, Dubai" class="w-full text-xs sm:text-sm border border-gray-300 rounded-lg px-3 py-2.5">
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Price per Night (AED)</label>
-                                    <input type="number" id="admin-price" required placeholder="e.g. 160" class="w-full text-xs sm:text-sm border border-gray-300 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-brand-blue focus:outline-none">
+                                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Price per night (AED)</label>
+                                    <input type="number" id="admin-price" min="1" required placeholder="e.g. 160" class="w-full text-xs sm:text-sm border border-gray-300 rounded-lg px-3 py-2.5">
                                 </div>
                             </div>
                             <div>
-                                <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Main Cover Photo URL</label>
-                                <input type="url" id="admin-main-img" required placeholder="https://images.unsplash.com/..." class="w-full text-xs sm:text-sm border border-gray-300 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-brand-blue focus:outline-none">
+                                <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Main cover photo URL</label>
+                                <input type="url" id="admin-main-img" required placeholder="https://images.unsplash.com/..." oninput="previewCover()" class="w-full text-xs sm:text-sm border border-gray-300 rounded-lg px-3 py-2.5">
+                                <img id="cover-preview" class="hidden mt-2 h-28 rounded-lg object-cover border border-gray-200" alt="Cover preview">
                             </div>
                             <div class="bg-gray-50 p-4 sm:p-6 rounded-xl border border-gray-200">
-                                <label class="block text-xs font-bold text-brand-blue uppercase mb-3"><i class="fa-solid fa-images mr-1"></i> Additional Gallery Photos (Up to 10 URLs)</label>
+                                <label class="block text-xs font-bold text-brand-blue uppercase mb-3"><i class="fa-solid fa-images mr-1"></i> Additional gallery photos (up to 10 URLs)</label>
                                 <div id="gallery-inputs-container" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
                             </div>
                             <div>
-                                <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Hotel & Room Description</label>
-                                <textarea id="admin-desc" rows="3" required placeholder="Describe room amenities..." class="w-full text-xs sm:text-sm border border-gray-300 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-brand-blue focus:outline-none"></textarea>
+                                <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Hotel & room description</label>
+                                <textarea id="admin-desc" rows="3" required placeholder="Describe room amenities..." class="w-full text-xs sm:text-sm border border-gray-300 rounded-lg px-3 py-2.5"></textarea>
                             </div>
-                            <button type="submit" id="submit-hotel-btn" class="w-full bg-brand-blue hover:bg-blue-900 text-white font-bold py-3 rounded-xl transition shadow-md text-sm sm:text-base">Save Hotel to Database</button>
+                            <div class="flex gap-3">
+                                <button type="submit" id="submit-hotel-btn" class="flex-1 bg-brand-blue hover:bg-blue-900 text-white font-bold py-3 rounded-xl transition shadow-md text-sm sm:text-base">Save hotel</button>
+                                <button type="button" id="cancel-edit-btn" onclick="cancelEditHotel()" class="hidden px-5 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold rounded-xl text-sm">Cancel edit</button>
+                            </div>
                         </form>
                     </div>
                     <div class="bg-white p-5 sm:p-8 rounded-2xl shadow-sm border border-gray-200">
-                        <h3 class="text-base sm:text-lg font-bold text-gray-900 mb-4">Database Properties</h3>
-                        <div id="admin-hotels-list" class="space-y-4"></div>
+                        <h3 class="text-base sm:text-lg font-bold text-gray-900 mb-4">Properties in database</h3>
+                        <div id="admin-hotels-list" class="space-y-3"></div>
                     </div>
                 </div>
 
-                <!-- Tab 2: Bookings -->
                 <div id="admin-section-bookings" class="hidden space-y-6">
                     <div class="bg-white p-5 sm:p-8 rounded-2xl shadow-sm border border-gray-200">
-                        <h3 class="text-base sm:text-lg font-bold text-gray-900 mb-4">Incoming Customer Reservations & Payment Verification</h3>
+                        <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-4">
+                            <h3 class="text-base sm:text-lg font-bold text-gray-900">Reservations & payment verification</h3>
+                            <div id="admin-booking-filters" class="flex flex-wrap gap-2 text-xs font-bold"></div>
+                        </div>
                         <div id="admin-bookings-list" class="space-y-4"></div>
                     </div>
                 </div>
             </div>
         </div>
-
     </main>
 
-    <!-- Footer -->
     <footer class="bg-brand-dark text-gray-400 py-8 sm:py-12 mt-20 border-t border-gray-800 text-center sm:text-left">
         <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center text-xs gap-3">
             <p>&copy; 2026 GulfBooking Dubai. All rights reserved.</p>
-            <p class="text-gray-500">Direct Local Hotel Booking Platform</p>
+            <p class="text-gray-500">Direct local hotel booking platform</p>
         </div>
     </footer>
 
-    <!-- ASK TEAM ASSISTANCE MODAL -->
-    <div id="assistance-modal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-3 sm:p-4 backdrop-blur-sm animate-fade-in">
-        <div class="bg-white rounded-2xl max-w-md w-full p-6 sm:p-8 shadow-2xl relative">
-            <button onclick="closeAssistanceModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
-            <h3 class="text-lg sm:text-xl font-extrabold text-gray-900 mb-2 flex items-center"><i class="fa-solid fa-headset text-brand-blue mr-2"></i> Ask Team to Book</h3>
-            <p class="text-xs text-gray-500 mb-6" id="assistance-hotel-subtitle">Fill out your details and our booking agents will reserve your stay manually.</p>
-            
+    <!-- LIGHTBOX -->
+    <div id="lightbox" class="fixed inset-0 bg-black/90 z-[90] hidden items-center justify-center p-3" onclick="if(event.target===this) closeLightbox()">
+        <button onclick="closeLightbox()" class="absolute top-4 right-4 text-white text-2xl w-10 h-10 rounded-full bg-white/10 hover:bg-white/20" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+        <button onclick="lightboxStep(-1)" class="absolute left-3 sm:left-8 text-white text-xl w-11 h-11 rounded-full bg-white/10 hover:bg-white/20" aria-label="Previous"><i class="fa-solid fa-chevron-left"></i></button>
+        <img id="lightbox-img" class="max-h-[85vh] max-w-full rounded-xl shadow-2xl object-contain" alt="Hotel photo">
+        <button onclick="lightboxStep(1)" class="absolute right-3 sm:right-8 text-white text-xl w-11 h-11 rounded-full bg-white/10 hover:bg-white/20" aria-label="Next"><i class="fa-solid fa-chevron-right"></i></button>
+        <div id="lightbox-counter" class="absolute bottom-5 text-white text-xs font-bold bg-black/50 px-3 py-1 rounded-full"></div>
+    </div>
+
+    <!-- CONFIRM MODAL -->
+    <div id="confirm-modal" class="fixed inset-0 bg-black/60 z-[95] hidden items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl">
+            <h3 id="confirm-title" class="text-lg font-extrabold text-gray-900 mb-1">Are you sure?</h3>
+            <p id="confirm-text" class="text-sm text-gray-600 mb-5"></p>
+            <div class="flex gap-3">
+                <button id="confirm-cancel" class="flex-1 bg-gray-100 hover:bg-gray-200 font-bold py-2.5 rounded-xl text-sm">Cancel</button>
+                <button id="confirm-ok" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-xl text-sm">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ASSISTANCE MODAL -->
+    <div id="assistance-modal" class="fixed inset-0 bg-black/60 z-50 hidden items-center justify-center p-3 sm:p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 sm:p-8 shadow-2xl relative max-h-[95vh] overflow-y-auto">
+            <button onclick="closeAssistanceModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+            <h3 class="text-lg sm:text-xl font-extrabold text-gray-900 mb-2 flex items-center"><i class="fa-solid fa-headset text-brand-blue mr-2"></i> Ask our team to book</h3>
+            <p class="text-xs text-gray-500 mb-6" id="assistance-hotel-subtitle"></p>
             <form onsubmit="submitAssistanceRequest(event)" class="space-y-4">
                 <div>
-                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Your Full Name</label>
-                    <input type="text" id="assist-name" required placeholder="Abdul Rafay" class="w-full text-xs sm:text-sm border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-blue">
+                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Your full name</label>
+                    <input type="text" id="assist-name" required placeholder="Abdul Rafay" class="w-full text-xs sm:text-sm border border-gray-300 rounded-lg px-3 py-2.5">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Phone / WhatsApp Number</label>
-                    <input type="text" id="assist-phone" required placeholder="+971 50 123 4567" class="w-full text-xs sm:text-sm border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-blue">
+                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Phone / WhatsApp number</label>
+                    <input type="tel" id="assist-phone" required placeholder="+971 50 123 4567" class="w-full text-xs sm:text-sm border border-gray-300 rounded-lg px-3 py-2.5">
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Check-in Date</label>
-                        <input type="date" id="assist-checkin" required class="w-full text-xs border border-gray-300 rounded-lg px-2.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-blue">
+                        <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Check-in</label>
+                        <input type="date" id="assist-checkin" required onchange="onAssistCheckinChange()" class="w-full text-xs border border-gray-300 rounded-lg px-2.5 py-2.5">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Check-out Date</label>
-                        <input type="date" id="assist-checkout" required class="w-full text-xs border border-gray-300 rounded-lg px-2.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-blue">
+                        <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Check-out</label>
+                        <input type="date" id="assist-checkout" required class="w-full text-xs border border-gray-300 rounded-lg px-2.5 py-2.5">
                     </div>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Additional Requirements / Notes</label>
-                    <textarea id="assist-notes" rows="2" placeholder="Airport pickup, extra bed, etc." class="w-full text-xs sm:text-sm border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-blue"></textarea>
+                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Notes</label>
+                    <textarea id="assist-notes" rows="2" placeholder="Airport pickup, extra bed, etc." class="w-full text-xs sm:text-sm border border-gray-300 rounded-lg px-3 py-2.5"></textarea>
                 </div>
-                <button type="submit" id="assist-submit-btn" class="w-full bg-brand-blue hover:bg-blue-900 text-white font-extrabold py-3.5 rounded-xl transition shadow-md text-sm sm:text-base">
-                    Send Request to Team
-                </button>
+                <button type="submit" id="assist-submit-btn" class="w-full bg-brand-blue hover:bg-blue-900 text-white font-extrabold py-3.5 rounded-xl transition shadow-md text-sm sm:text-base">Send request to team</button>
             </form>
         </div>
     </div>
 
     <!-- AUTH MODAL -->
-    <div id="auth-modal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-3 sm:p-4 backdrop-blur-sm animate-fade-in">
+    <div id="auth-modal" class="fixed inset-0 bg-black/60 z-50 hidden items-center justify-center p-3 sm:p-4 backdrop-blur-sm">
         <div class="bg-white rounded-2xl max-w-md w-full p-6 sm:p-8 shadow-2xl relative">
-            <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
+            <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-lg" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
             <div class="flex border-b border-gray-200 mb-6">
-                <button id="tab-login" onclick="setAuthMode('login')" class="flex-1 pb-3 font-bold text-brand-blue border-b-2 border-brand-blue text-center text-sm">Sign In</button>
-                <button id="tab-register" onclick="setAuthMode('register')" class="flex-1 pb-3 font-bold text-gray-400 text-center text-sm">Create Account</button>
+                <button id="tab-login" onclick="setAuthMode('login')" class="flex-1 pb-3 font-bold text-brand-blue border-b-2 border-brand-blue text-center text-sm">Sign in</button>
+                <button id="tab-register" onclick="setAuthMode('register')" class="flex-1 pb-3 font-bold text-gray-400 text-center text-sm">Create account</button>
             </div>
             <form id="auth-form" onsubmit="handleAuthSubmit(event)" class="space-y-4">
                 <div id="name-field-box" class="hidden">
-                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Full Name</label>
-                    <input type="text" id="auth-name" placeholder="Abdul Rafay" class="w-full text-xs sm:text-sm border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-blue">
+                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Full name</label>
+                    <input type="text" id="auth-name" placeholder="Abdul Rafay" class="w-full text-xs sm:text-sm border border-gray-300 rounded-lg px-3 py-2.5">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Email Address</label>
-                    <input type="email" id="auth-email" required placeholder="name@example.com" class="w-full text-xs sm:text-sm border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-blue">
+                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Email address</label>
+                    <input type="email" id="auth-email" required placeholder="name@example.com" class="w-full text-xs sm:text-sm border border-gray-300 rounded-lg px-3 py-2.5">
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Password</label>
-                    <input type="password" id="auth-pass" required placeholder="••••••••" class="w-full text-xs sm:text-sm border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-blue">
+                    <div class="relative">
+                        <input type="password" id="auth-pass" required minlength="6" placeholder="At least 6 characters" class="w-full text-xs sm:text-sm border border-gray-300 rounded-lg px-3 py-2.5 pr-10">
+                        <button type="button" onclick="togglePass()" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700" aria-label="Show password"><i id="pass-eye" class="fa-regular fa-eye"></i></button>
+                    </div>
                 </div>
-                <button type="submit" id="auth-submit-btn" class="w-full bg-brand-blue hover:bg-blue-950 text-white font-bold py-3.5 rounded-xl transition shadow-md text-sm sm:text-base">Sign In</button>
+                <button type="submit" id="auth-submit-btn" class="w-full bg-brand-blue hover:bg-blue-950 text-white font-bold py-3.5 rounded-xl transition shadow-md text-sm sm:text-base">Sign in</button>
             </form>
         </div>
     </div>
 
-    <!-- Script Logic -->
     <script>
+        // ================= STATE =================
         let hotelsCache = [];
         let bookingsCache = [];
         let currentUser = null;
+        let isAdmin = false;
+        let hotelsLoaded = false;
+        let currentView = 'home';
         let authModeState = 'login';
         let currentHotelForBooking = null;
         let hotelForAssistance = null;
+        let editingHotelId = null;
+        let unsubBookings = null;
+        let bookingFilter = 'all';
+        let savedOnly = false;
+        let areaFilter = '';
+        let lightboxImages = [];
+        let lightboxIndex = 0;
+        let lastDetailsHotelId = null;
 
-        const ADMIN_EMAIL = "abdulrafaypk34@example.com";
+        // Only this account can open the admin panel.
+        // IMPORTANT: also enforce this in Firestore Security Rules (see notes) — client checks alone can be bypassed.
+        // Add or remove admin emails here. Keep the same list in your Firestore rules.
+        const ADMIN_EMAILS = [
+            "abdulrafaypk34@gmail.com",
+            "abdulrafaypk1306@gmail.com",
+            "abdulrafayhafeezpk34@gmail.com"   // check this against the full email in Firebase > Authentication > Users
+        ];
+        function isAdminEmail(email) {
+            return !!email && ADMIN_EMAILS.some(e => e.toLowerCase() === email.toLowerCase());
+        }
 
+        // ================= HELPERS =================
+        const $ = (id) => document.getElementById(id);
+        function esc(v) {
+            return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+        function safeUrl(u) {
+            try { const p = new URL(u); return (p.protocol === 'https:' || p.protocol === 'http:') ? esc(u) : ''; } catch { return ''; }
+        }
+        function ymd(d) { const z = d.getTimezoneOffset() * 60000; return new Date(d - z).toISOString().split('T')[0]; }
+        function todayStr() { return ymd(new Date()); }
+        function addDays(str, n) { const d = new Date(str + 'T00:00:00'); d.setDate(d.getDate() + n); return ymd(d); }
+        function nightsBetween(a, b) { return Math.round((new Date(b + 'T00:00:00') - new Date(a + 'T00:00:00')) / 86400000); }
+        function money(n) { return 'AED ' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 }); }
+        function nightsLabel(n) { const x = parseInt(n) || 1; return `${x} night${x > 1 ? 's' : ''}`; }
+
+        function toast(msg, type = 'info') {
+            const styles = { success: 'bg-emerald-600', error: 'bg-red-600', info: 'bg-brand-blue' };
+            const icons = { success: 'fa-circle-check', error: 'fa-circle-exclamation', info: 'fa-circle-info' };
+            const el = document.createElement('div');
+            el.className = `toast pointer-events-auto ${styles[type]} text-white text-xs sm:text-sm font-semibold px-4 py-3 rounded-xl shadow-xl flex items-start gap-2.5`;
+            el.innerHTML = `<i class="fa-solid ${icons[type]} mt-0.5"></i><span class="flex-1">${esc(msg)}</span>`;
+            $('toast-container').appendChild(el);
+            setTimeout(() => { el.style.transition = 'opacity .3s'; el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, 4000);
+        }
+
+        function confirmDialog(title, text, okLabel = 'Confirm') {
+            return new Promise(resolve => {
+                $('confirm-title').innerText = title;
+                $('confirm-text').innerText = text;
+                $('confirm-ok').innerText = okLabel;
+                const modal = $('confirm-modal');
+                modal.classList.remove('hidden'); modal.classList.add('flex');
+                const done = (v) => { modal.classList.add('hidden'); modal.classList.remove('flex'); $('confirm-ok').onclick = null; $('confirm-cancel').onclick = null; resolve(v); };
+                $('confirm-ok').onclick = () => done(true);
+                $('confirm-cancel').onclick = () => done(false);
+            });
+        }
+
+        function showModal(id) { const m = $(id); m.classList.remove('hidden'); m.classList.add('flex'); }
+        function hideModal(id) { const m = $(id); m.classList.add('hidden'); m.classList.remove('flex'); }
+
+        function statusBadge(status) {
+            const s = status || 'Pending';
+            let cls = 'bg-amber-100 text-amber-800 border-amber-300', icon = 'fa-hourglass-half';
+            if (s === 'Paid & Confirmed') { cls = 'bg-emerald-100 text-emerald-800 border-emerald-300'; icon = 'fa-circle-check'; }
+            else if (s === 'Rejected') { cls = 'bg-red-100 text-red-800 border-red-300'; icon = 'fa-circle-xmark'; }
+            return `<span class="text-[10px] sm:text-xs font-extrabold px-2.5 py-0.5 rounded-full border ${cls}"><i class="fa-solid ${icon} mr-1"></i>${esc(s)}</span>`;
+        }
+
+        // Saved hotels (per-browser convenience)
+        function getSaved() { try { return JSON.parse(localStorage.getItem('gb-saved') || '[]'); } catch { return []; } }
+        function setSaved(list) { try { localStorage.setItem('gb-saved', JSON.stringify(list)); } catch { /* storage unavailable */ } }
+
+        // ================= FIREBASE =================
         document.addEventListener('firebase-ready', () => {
             const { auth, db, onAuthStateChanged, collection, onSnapshot } = window.fb;
 
             onAuthStateChanged(auth, (user) => {
                 currentUser = user;
+                isAdmin = !!(user && isAdminEmail(user.email));
                 updateHeaderAuthUI(user);
-                checkAdminAccess(user);
+                updateNavForUser();
+                subscribeBookings();
+                // Kick non-admins out of the admin view (e.g. after sign-out)
+                if (currentView === 'admin' && !isAdmin) switchView('home');
+                if (currentView === 'my-bookings' && !user) switchView('home');
             });
 
             onSnapshot(collection(db, "hotels"), (snapshot) => {
                 hotelsCache = [];
-                snapshot.forEach((docSnap) => {
-                    hotelsCache.push({ id: docSnap.id, ...docSnap.data() });
-                });
-                renderCustomerHotels();
+                snapshot.forEach(d => hotelsCache.push({ id: d.id, ...d.data() }));
+                hotelsLoaded = true;
+                setupPriceSlider();
+                buildAreaChips();
+                applyFilters();
                 renderAdminList();
-            });
-
-            onSnapshot(collection(db, "bookings"), (snapshot) => {
-                bookingsCache = [];
-                snapshot.forEach((docSnap) => {
-                    bookingsCache.push({ id: docSnap.id, ...docSnap.data() });
-                });
-                renderAdminBookings();
-                renderUserBookings();
-            });
+            }, (err) => { hotelsLoaded = true; applyFilters(); toast('Could not load hotels: ' + err.message, 'error'); });
 
             buildGalleryInputs();
         });
 
-        function buildGalleryInputs() {
-            const container = document.getElementById('gallery-inputs-container');
-            container.innerHTML = '';
-            for(let i = 1; i <= 10; i++) {
-                const div = document.createElement('div');
-                div.innerHTML = `<input type="url" id="gallery-photo-${i}" placeholder="Gallery Photo ${i} URL" class="w-full text-xs border border-gray-300 rounded-lg px-3 py-2 focus:ring-1 focus:ring-brand-blue focus:outline-none">`;
-                container.appendChild(div);
-            }
+        function subscribeBookings() {
+            const { db, collection, onSnapshot, query, where } = window.fb;
+            if (unsubBookings) { unsubBookings(); unsubBookings = null; }
+            bookingsCache = [];
+            renderUserBookings(); renderAdminBookings();
+            if (!currentUser) return;
+            // Admin reads everything; customers only ever read their own bookings.
+            const q = isAdmin ? collection(db, "bookings") : query(collection(db, "bookings"), where("userId", "==", currentUser.uid));
+            unsubBookings = onSnapshot(q, (snapshot) => {
+                bookingsCache = [];
+                snapshot.forEach(d => bookingsCache.push({ id: d.id, ...d.data() }));
+                bookingsCache.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+                renderAdminBookings();
+                renderUserBookings();
+            }, (err) => toast('Could not load bookings: ' + err.message, 'error'));
+        }
+
+        // ================= NAV / VIEWS =================
+        function updateNavForUser() {
+            const adminNav = $('admin-nav-container');
+            const myBtn = $('my-bookings-btn');
+            if (currentUser) myBtn.classList.remove('hidden'); else myBtn.classList.add('hidden');
+            // The Manage button is only created for the admin. Everyone else gets nothing in the DOM.
+            adminNav.innerHTML = isAdmin
+                ? `<button onclick="switchView('admin')" class="bg-brand-gold hover:bg-amber-400 text-brand-dark px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-extrabold transition shadow-md flex items-center gap-1.5"><i class="fa-solid fa-gear"></i><span>Manage</span></button>`
+                : '';
         }
 
         function switchView(viewId) {
-            document.getElementById('view-home').classList.add('hidden');
-            document.getElementById('view-details').classList.add('hidden');
-            document.getElementById('view-checkout').classList.add('hidden');
-            document.getElementById('view-admin').classList.add('hidden');
-            document.getElementById('view-my-bookings').classList.add('hidden');
-
-            if(viewId === 'home') {
-                document.getElementById('view-home').classList.remove('hidden');
-                renderCustomerHotels();
-            } else if(viewId === 'admin') {
-                if(!currentUser || currentUser.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
-                    alert('Access denied. Admin privileges required.');
-                    switchView('home');
-                    return;
-                }
-                document.getElementById('view-admin').classList.remove('hidden');
-                renderAdminList();
-                renderAdminBookings();
-            } else if(viewId === 'details') {
-                document.getElementById('view-details').classList.remove('hidden');
-            } else if(viewId === 'checkout') {
-                document.getElementById('view-checkout').classList.remove('hidden');
-            } else if(viewId === 'my-bookings') {
-                if(!currentUser) {
-                    alert('Please sign in to view your bookings.');
-                    openAuthModal('login');
-                    return;
-                }
-                document.getElementById('view-my-bookings').classList.remove('hidden');
-                renderUserBookings();
-            }
-            window.scrollTo({top: 0, behavior: 'smooth'});
+            if (viewId === 'admin' && !isAdmin) { toast('Access denied. Admin privileges required.', 'error'); viewId = 'home'; }
+            if (viewId === 'my-bookings' && !currentUser) { toast('Please sign in to view your bookings.', 'info'); openAuthModal('login'); return; }
+            ['home', 'details', 'checkout', 'admin', 'my-bookings'].forEach(v => $('view-' + v).classList.add('hidden'));
+            $('view-' + viewId).classList.remove('hidden');
+            currentView = viewId;
+            if (viewId === 'home') applyFilters();
+            if (viewId === 'admin') { renderAdminList(); renderAdminBookings(); }
+            if (viewId === 'my-bookings') renderUserBookings();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        function switchAdminTab(tabName) {
-            const hotelsSec = document.getElementById('admin-section-hotels');
-            const bookingsSec = document.getElementById('admin-section-bookings');
-            const hotelsBtn = document.getElementById('admin-tab-hotels-btn');
-            const bookingsBtn = document.getElementById('admin-tab-bookings-btn');
+        function backToDetails() { if (lastDetailsHotelId) showHotelDetails(lastDetailsHotelId); else switchView('home'); }
 
-            if(tabName === 'hotels') {
-                hotelsSec.classList.remove('hidden');
-                bookingsSec.classList.add('hidden');
-                hotelsBtn.className = "bg-brand-blue text-white px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow";
-                bookingsBtn.className = "bg-white text-gray-700 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow border";
-            } else {
-                hotelsSec.classList.add('hidden');
-                bookingsSec.classList.remove('hidden');
-                bookingsBtn.className = "bg-brand-blue text-white px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow";
-                hotelsBtn.className = "bg-white text-gray-700 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow border";
-            }
+        // ================= HOME: FILTERS =================
+        function setupPriceSlider() {
+            const slider = $('price-range');
+            const maxPrice = Math.max(100, ...hotelsCache.map(h => Number(h.price) || 0));
+            const ceiling = Math.ceil(maxPrice / 10) * 10;
+            const wasMax = parseInt(slider.value) >= parseInt(slider.max);
+            slider.max = ceiling;
+            if (wasMax) slider.value = ceiling;
         }
 
-        function checkAdminAccess(user) {
-            const adminNav = document.getElementById('admin-nav-container');
-            const myBookingsBtn = document.getElementById('my-bookings-btn');
-            if(user) {
-                myBookingsBtn.classList.remove('hidden');
-                if(user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
-                    adminNav.innerHTML = `<button onclick="switchView('admin')" class="bg-blue-900/90 hover:bg-blue-900 text-blue-100 px-2.5 sm:px-3.5 py-2 sm:py-2.5 rounded-xl text-xs font-bold transition border border-blue-600 flex items-center space-x-1.5 shadow-sm"><i class="fa-solid fa-gear text-brand-gold"></i><span class="hidden sm:inline">Manage Hotels</span></button>`;
-                } else {
-                    adminNav.innerHTML = '';
-                }
-            } else {
-                myBookingsBtn.classList.add('hidden');
-                adminNav.innerHTML = '';
-            }
+        function buildAreaChips() {
+            const areas = [...new Set(hotelsCache.map(h => (h.location || '').split(',')[0].trim()).filter(Boolean))].slice(0, 8);
+            $('area-chips').innerHTML = areas.map(a => {
+                const active = areaFilter === a;
+                return `<button onclick="setArea('${esc(a).replace(/'/g, '&#39;')}')" class="text-xs font-bold px-3.5 py-1.5 rounded-full border transition ${active ? 'bg-brand-gold text-brand-dark border-brand-gold' : 'bg-white/10 text-white border-white/30 hover:bg-white/20'}">${esc(a)}</button>`;
+            }).join('');
+        }
+        function setArea(a) { areaFilter = (areaFilter === a) ? '' : a; buildAreaChips(); applyFilters(); }
+        function clearSearch() { $('search-input').value = ''; applyFilters(); $('search-input').focus(); }
+        function toggleSavedOnly() { savedOnly = !savedOnly; applyFilters(); }
+        function resetFilters() {
+            $('search-input').value = ''; areaFilter = ''; savedOnly = false;
+            $('sort-select').value = 'featured'; $('price-range').value = $('price-range').max;
+            buildAreaChips(); applyFilters();
         }
 
-        function renderCustomerHotels(filteredList = null) {
-            const container = document.getElementById('customer-hotel-grid');
-            container.innerHTML = '';
-            const listToRender = filteredList || hotelsCache;
-            document.getElementById('property-count-text').innerText = `Showing ${listToRender.length} verified properties`;
+        function applyFilters() {
+            const q = $('search-input').value.toLowerCase().trim();
+            const slider = $('price-range');
+            const maxAllowed = parseInt(slider.value);
+            const isAnyPrice = maxAllowed >= parseInt(slider.max);
+            $('price-range-label').innerText = isAnyPrice ? 'Any' : 'AED ' + maxAllowed;
+            $('search-clear').classList.toggle('hidden', !q);
+            const saved = getSaved();
+            $('saved-count').innerText = saved.length;
+            const st = $('saved-toggle');
+            st.className = 'flex-1 sm:flex-none text-xs font-bold px-3.5 py-2.5 rounded-xl border transition ' + (savedOnly ? 'bg-red-50 border-red-300 text-red-700' : 'border-gray-300 bg-white hover:bg-gray-50');
 
-            if(listToRender.length === 0) {
-                container.innerHTML = `<div class="col-span-full bg-white p-8 sm:p-12 rounded-2xl text-center border border-dashed border-gray-300 shadow-sm"><i class="fa-solid fa-hotel text-4xl text-gray-300 mb-3"></i><h3 class="text-base sm:text-lg font-bold text-gray-700">No hotels available matching your search</h3></div>`;
+            let list = hotelsCache.filter(h => {
+                const hay = ((h.name || '') + ' ' + (h.location || '')).toLowerCase();
+                if (q && !hay.includes(q)) return false;
+                if (areaFilter && !(h.location || '').toLowerCase().includes(areaFilter.toLowerCase())) return false;
+                if (!isAnyPrice && Number(h.price) > maxAllowed) return false;
+                if (savedOnly && !saved.includes(h.id)) return false;
+                return true;
+            });
+
+            const sort = $('sort-select').value;
+            if (sort === 'price-asc') list.sort((a, b) => a.price - b.price);
+            else if (sort === 'price-desc') list.sort((a, b) => b.price - a.price);
+            else if (sort === 'name') list.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+            else list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+            renderCustomerHotels(list);
+        }
+
+        function renderCustomerHotels(list) {
+            const container = $('customer-hotel-grid');
+
+            if (!hotelsLoaded) {
+                container.innerHTML = Array.from({ length: 3 }, () => `
+                    <div class="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                        <div class="h-56 skeleton"></div>
+                        <div class="p-5 space-y-3"><div class="h-4 w-2/3 skeleton rounded"></div><div class="h-3 w-1/3 skeleton rounded"></div><div class="h-3 w-full skeleton rounded"></div></div>
+                    </div>`).join('');
                 return;
             }
 
-            listToRender.forEach(hotel => {
-                const card = document.createElement('div');
-                card.className = "bg-white rounded-2xl shadow-sm border border-gray-200/80 hover:shadow-xl transition duration-300 overflow-hidden flex flex-col justify-between group";
-                card.innerHTML = `
-                    <div class="cursor-pointer" onclick="showHotelDetails('${hotel.id}')">
-                        <div class="h-48 sm:h-56 relative overflow-hidden">
-                            <img src="${hotel.mainImage}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
-                            <div class="absolute top-3 left-3 bg-brand-blue/90 text-white text-[10px] font-bold px-2.5 py-1 rounded-md shadow">Genius Property</div>
-                            <div class="absolute bottom-3 right-3 bg-brand-blue text-white text-xs font-extrabold px-3 py-1.5 rounded-xl shadow-md">AED ${hotel.price} <span class="text-[10px] font-normal text-blue-200">/ night</span></div>
+            $('property-count-text').innerText = `Showing ${list.length} of ${hotelsCache.length} properties`;
+
+            if (list.length === 0) {
+                container.innerHTML = `<div class="col-span-full bg-white p-8 sm:p-12 rounded-2xl text-center border border-dashed border-gray-300 shadow-sm">
+                    <i class="fa-solid fa-hotel text-4xl text-gray-300 mb-3"></i>
+                    <h3 class="text-base sm:text-lg font-bold text-gray-700">No hotels match your filters</h3>
+                    <p class="text-xs text-gray-500 mt-1">Try a different area or raise the price limit.</p>
+                    <button onclick="resetFilters()" class="mt-4 bg-brand-blue text-white text-xs font-bold px-4 py-2 rounded-xl">Reset filters</button></div>`;
+                return;
+            }
+
+            const saved = getSaved();
+            container.innerHTML = list.map(h => {
+                const isSaved = saved.includes(h.id);
+                return `
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-200/80 hover:shadow-xl hover:-translate-y-0.5 transition duration-300 overflow-hidden flex flex-col justify-between group">
+                    <div class="cursor-pointer" onclick="showHotelDetails('${h.id}')">
+                        <div class="h-48 sm:h-56 relative overflow-hidden bg-gray-100">
+                            <img src="${safeUrl(h.mainImage)}" loading="lazy" alt="${esc(h.name)}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                            <div class="absolute top-3 left-3 bg-brand-blue/90 text-white text-[10px] font-bold px-2.5 py-1 rounded-md shadow">10% off today</div>
+                            <div class="absolute bottom-3 right-3 bg-brand-blue text-white text-xs font-extrabold px-3 py-1.5 rounded-xl shadow-md">AED ${esc(h.price)} <span class="text-[10px] font-normal text-blue-200">/ night</span></div>
                         </div>
                         <div class="p-4 sm:p-5">
-                            <h3 class="text-base sm:text-lg font-extrabold text-gray-900 group-hover:text-brand-blue transition">${hotel.name}</h3>
-                            <p class="text-xs text-gray-500 mt-1"><i class="fa-solid fa-location-dot text-gray-400 mr-1"></i>${hotel.location}</p>
-                            <p class="text-xs text-gray-600 mt-2 sm:mt-3 line-clamp-2 leading-relaxed">${hotel.desc}</p>
+                            <h3 class="text-base sm:text-lg font-extrabold text-gray-900 group-hover:text-brand-blue transition">${esc(h.name)}</h3>
+                            <p class="text-xs text-gray-500 mt-1"><i class="fa-solid fa-location-dot text-gray-400 mr-1"></i>${esc(h.location)}</p>
+                            <p class="text-xs text-gray-600 mt-2 sm:mt-3 line-clamp-2 leading-relaxed">${esc(h.desc)}</p>
                         </div>
                     </div>
+                    <button onclick="toggleSave('${h.id}', this)" class="absolute mt-3 ml-[calc(100%-3.25rem)] bg-white/90 hover:bg-white w-9 h-9 rounded-full shadow flex items-center justify-center" aria-label="Save hotel" style="position:absolute;margin:0;top:0.75rem;right:0.75rem;">
+                        <i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-heart text-red-500"></i>
+                    </button>
                     <div class="p-4 sm:p-5 pt-0 space-y-2.5 border-t border-gray-100 mt-2">
                         <div class="flex justify-between items-center pt-2 text-[11px] sm:text-xs">
-                            <span class="text-emerald-600 font-bold"><i class="fa-solid fa-check-circle mr-1"></i> Free Cancellation</span>
-                            <span class="font-bold text-brand-blue cursor-pointer hover:underline" onclick="showHotelDetails('${hotel.id}')">View Gallery →</span>
+                            <span class="text-emerald-600 font-bold"><i class="fa-solid fa-check-circle mr-1"></i> Free cancellation</span>
+                            <span class="font-bold text-brand-blue cursor-pointer hover:underline" onclick="showHotelDetails('${h.id}')">View gallery →</span>
                         </div>
-                        <button onclick="openAssistanceModal('${hotel.id}')" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-2.5 px-4 rounded-xl transition text-xs flex items-center justify-center space-x-2 border border-gray-300">
-                            <i class="fa-solid fa-headset text-brand-blue"></i>
-                            <span>Ask Team to Book My Stay</span>
-                        </button>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="openCheckoutPage('${h.id}')" class="bg-brand-gold hover:bg-amber-400 text-brand-dark font-extrabold py-2.5 px-3 rounded-xl transition text-xs">Book now</button>
+                            <button onclick="openAssistanceModal('${h.id}')" class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-2.5 px-3 rounded-xl transition text-xs border border-gray-300"><i class="fa-solid fa-headset text-brand-blue mr-1"></i> Ask team</button>
+                        </div>
                     </div>
-                `;
-                container.appendChild(card);
-            });
+                </div>`;
+            }).join('');
+
+            // make cards positioning context for the heart button
+            container.querySelectorAll(':scope > div').forEach(c => c.style.position = 'relative');
         }
 
-        function filterHotelsLive() {
-            const query = document.getElementById('search-input').value.toLowerCase().trim();
-            const filtered = hotelsCache.filter(hotel => {
-                return hotel.name.toLowerCase().includes(query) || hotel.location.toLowerCase().includes(query);
-            });
-            renderCustomerHotels(filtered);
+        function toggleSave(id, btn) {
+            let saved = getSaved();
+            const had = saved.includes(id);
+            saved = had ? saved.filter(x => x !== id) : [...saved, id];
+            setSaved(saved);
+            $('saved-count').innerText = saved.length;
+            const icon = btn.querySelector('i');
+            icon.className = (had ? 'fa-regular' : 'fa-solid') + ' fa-heart text-red-500';
+            icon.classList.remove('heart-pop'); void icon.offsetWidth; icon.classList.add('heart-pop');
+            toast(had ? 'Removed from saved' : 'Saved to your list', 'info');
+            if (savedOnly) applyFilters();
         }
 
-        // ================= ASK TEAM ASSISTANCE MODAL =================
-        function openAssistanceModal(hotelId) {
-            hotelForAssistance = hotelsCache.find(h => h.id === hotelId);
-            if(!hotelForAssistance) return;
-
-            document.getElementById('assistance-hotel-subtitle').innerText = `Request manual booking assistance for ${hotelForAssistance.name} (${hotelForAssistance.location}).`;
-            const today = new Date().toISOString().split('T')[0];
-            const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
-            document.getElementById('assist-checkin').value = today;
-            document.getElementById('assist-checkout').value = tomorrow;
-
-            document.getElementById('assistance-modal').classList.remove('hidden');
-        }
-
-        function closeAssistanceModal() {
-            document.getElementById('assistance-modal').classList.add('hidden');
-        }
-
-        async function submitAssistanceRequest(e) {
-            e.preventDefault();
-            const { db, collection, addDoc } = window.fb;
-            const name = document.getElementById('assist-name').value;
-            const phone = document.getElementById('assist-phone').value;
-            const checkin = document.getElementById('assist-checkin').value;
-            const checkout = document.getElementById('assist-checkout').value;
-            const notes = document.getElementById('assist-notes').value;
-
-            const btn = document.getElementById('assist-submit-btn');
-            btn.innerText = "Sending Request...";
-            btn.disabled = true;
-
-            try {
-                await addDoc(collection(db, "bookings"), {
-                    userId: currentUser ? currentUser.uid : "guest-assisted",
-                    userEmail: currentUser ? currentUser.email : `${name.replace(/\s+/g,'')}@guest.com`,
-                    hotelName: hotelForAssistance.name + " (Team Assisted Request)",
-                    hotelLocation: hotelForAssistance.location,
-                    checkin, checkout, time: "14:00", guests: "2",
-                    totalBill: hotelForAssistance.price,
-                    nights: "1 night",
-                    txnId: "N/A (Assisted Request)",
-                    status: "Pending Team Review",
-                    notes, phone, customerName: name,
-                    createdAt: Date.now()
-                });
-
-                closeAssistanceModal();
-                alert('Request submitted successfully! Our support team will contact you shortly to complete your booking.');
-                if(currentUser) switchView('my-bookings');
-            } catch(err) {
-                alert('Error submitting request: ' + err.message);
-            } finally {
-                btn.innerText = "Send Request to Team";
-                btn.disabled = false;
-            }
-        }
-
+        // ================= DETAILS + LIGHTBOX =================
         function showHotelDetails(hotelId) {
             const hotel = hotelsCache.find(h => h.id === hotelId);
-            if(!hotel) return;
+            if (!hotel) return;
+            lastDetailsHotelId = hotelId;
+            const photos = (hotel.photos || []).filter(p => p && p.trim());
+            const all = [hotel.mainImage, ...photos];
+            window.__gallery = all;
 
-            let galleryHTML = '';
-            if(hotel.photos && hotel.photos.length > 0) {
-                hotel.photos.forEach(photoUrl => {
-                    if(photoUrl.trim() !== '') {
-                        galleryHTML += `<div class="rounded-xl overflow-hidden shadow-sm h-36 sm:h-48 bg-gray-100"><img src="${photoUrl}" class="w-full h-full object-cover hover:scale-105 transition duration-300"></div>`;
-                    }
-                });
-            }
+            const thumbs = photos.map((p, i) => `<div class="rounded-xl overflow-hidden shadow-sm h-36 sm:h-48 bg-gray-100 cursor-zoom-in" onclick="openLightbox(${i + 1})"><img src="${safeUrl(p)}" loading="lazy" alt="Gallery photo ${i + 1}" class="w-full h-full object-cover hover:scale-105 transition duration-300"></div>`).join('');
+            const saved = getSaved().includes(hotel.id);
 
-            const container = document.getElementById('details-content');
-            container.innerHTML = `
+            $('details-content').innerHTML = `
                 <button onclick="switchView('home')" class="mb-4 sm:mb-6 text-xs font-bold text-brand-blue hover:underline flex items-center space-x-1"><i class="fa-solid fa-arrow-left"></i><span>Back to all properties</span></button>
                 <div class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                     <div>
-                        <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900">${hotel.name}</h1>
-                        <p class="text-sm text-gray-500 mt-1"><i class="fa-solid fa-location-dot text-gray-400 mr-1"></i>${hotel.location}</p>
+                        <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900">${esc(hotel.name)}</h1>
+                        <p class="text-sm text-gray-500 mt-1"><i class="fa-solid fa-location-dot text-gray-400 mr-1"></i>${esc(hotel.location)}</p>
                     </div>
                     <div class="bg-brand-blue text-white px-4 py-2 rounded-xl text-center w-full sm:w-auto">
-                        <span class="text-[10px] text-blue-200 block uppercase font-bold">Price per night (24 Hours)</span>
-                        <span class="text-xl font-extrabold">AED ${hotel.price}</span>
+                        <span class="text-[10px] text-blue-200 block uppercase font-bold">Price per night (24 hours)</span>
+                        <span class="text-xl font-extrabold">AED ${esc(hotel.price)}</span>
                     </div>
                 </div>
                 <div class="mb-8 sm:mb-10">
-                    <div class="h-[250px] sm:h-[400px] rounded-2xl overflow-hidden shadow-md mb-4 bg-gray-100"><img src="${hotel.mainImage}" class="w-full h-full object-cover"></div>
-                    <h3 class="text-sm font-extrabold text-gray-800 uppercase tracking-wide mb-3"><i class="fa-solid fa-images mr-1 text-brand-blue"></i> Full Room & Hotel Gallery</h3>
-                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4">${galleryHTML || '<p class="text-xs text-gray-400">No additional gallery photos added.</p>'}</div>
+                    <div class="h-[250px] sm:h-[400px] rounded-2xl overflow-hidden shadow-md mb-4 bg-gray-100 cursor-zoom-in relative" onclick="openLightbox(0)">
+                        <img src="${safeUrl(hotel.mainImage)}" alt="${esc(hotel.name)}" class="w-full h-full object-cover">
+                        <span class="absolute bottom-3 right-3 bg-black/60 text-white text-xs font-bold px-3 py-1.5 rounded-full"><i class="fa-solid fa-expand mr-1"></i> ${all.length} photo${all.length > 1 ? 's' : ''}</span>
+                    </div>
+                    <h3 class="text-sm font-extrabold text-gray-800 uppercase tracking-wide mb-3"><i class="fa-solid fa-images mr-1 text-brand-blue"></i> Room & hotel gallery</h3>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4">${thumbs || '<p class="text-xs text-gray-400">No additional gallery photos added.</p>'}</div>
                 </div>
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
                     <div class="lg:col-span-2 space-y-6">
                         <div class="bg-white p-5 sm:p-6 rounded-2xl border border-gray-200 shadow-sm">
                             <h3 class="text-lg font-bold text-gray-900 mb-3">About this room & property</h3>
-                            <p class="text-sm text-gray-600 leading-relaxed">${hotel.desc}</p>
+                            <p class="text-sm text-gray-600 leading-relaxed whitespace-pre-line">${esc(hotel.desc)}</p>
                         </div>
                     </div>
-                    <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-5 sm:p-6 rounded-2xl border border-blue-100 h-fit space-y-4 shadow-sm">
+                    <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-5 sm:p-6 rounded-2xl border border-blue-100 h-fit space-y-4 shadow-sm lg:sticky lg:top-24">
                         <div>
-                            <span class="text-xs text-gray-500 block">Rate per 24-hr night</span>
-                            <div class="text-2xl sm:text-3xl font-extrabold text-gray-900">AED ${hotel.price}</div>
+                            <span class="text-xs text-gray-500 block">Rate per 24-hour night</span>
+                            <div class="text-2xl sm:text-3xl font-extrabold text-gray-900">AED ${esc(hotel.price)}</div>
+                            <span class="text-xs text-emerald-600 font-bold">10% off applied at checkout</span>
                         </div>
                         <hr class="border-blue-200">
-                        <button onclick="openCheckoutPage('${hotel.id}')" class="w-full bg-brand-gold hover:bg-amber-400 text-brand-dark font-extrabold py-3.5 rounded-xl transition shadow-md text-sm sm:text-base">
-                            Book Now & Proceed to Bill (10% Off)
-                        </button>
+                        <button onclick="openCheckoutPage('${hotel.id}')" class="w-full bg-brand-gold hover:bg-amber-400 text-brand-dark font-extrabold py-3.5 rounded-xl transition shadow-md text-sm sm:text-base">Book now & view bill</button>
+                        <button onclick="openAssistanceModal('${hotel.id}')" class="w-full bg-white hover:bg-gray-50 text-gray-800 font-bold py-3 rounded-xl border border-gray-300 text-sm"><i class="fa-solid fa-headset text-brand-blue mr-1"></i> Ask team to book for me</button>
+                        <button onclick="toggleSaveDetails('${hotel.id}', this)" class="w-full text-xs font-bold text-gray-600 hover:text-red-600"><i class="${saved ? 'fa-solid' : 'fa-regular'} fa-heart text-red-500 mr-1"></i><span>${saved ? 'Saved' : 'Save for later'}</span></button>
                     </div>
-                </div>
-            `;
+                </div>`;
             switchView('details');
         }
 
-        // ================= FULL-SCREEN CHECKOUT WORKFLOW =================
-        function openCheckoutPage(hotelId) {
-            if(!currentUser) {
-                alert('Please sign in to proceed with booking.');
-                openAuthModal('login');
+        function toggleSaveDetails(id, btn) {
+            let saved = getSaved(); const had = saved.includes(id);
+            saved = had ? saved.filter(x => x !== id) : [...saved, id]; setSaved(saved);
+            btn.innerHTML = `<i class="${had ? 'fa-regular' : 'fa-solid'} fa-heart text-red-500 mr-1"></i><span>${had ? 'Save for later' : 'Saved'}</span>`;
+            toast(had ? 'Removed from saved' : 'Saved to your list', 'info');
+        }
+
+        function openLightbox(i) { lightboxImages = window.__gallery || []; lightboxIndex = i; renderLightbox(); showModal('lightbox'); }
+        function closeLightbox() { hideModal('lightbox'); }
+        function lightboxStep(d) { if (!lightboxImages.length) return; lightboxIndex = (lightboxIndex + d + lightboxImages.length) % lightboxImages.length; renderLightbox(); }
+        function renderLightbox() {
+            $('lightbox-img').src = lightboxImages[lightboxIndex] || '';
+            $('lightbox-counter').innerText = `${lightboxIndex + 1} / ${lightboxImages.length}`;
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (!$('lightbox').classList.contains('hidden')) {
+                if (e.key === 'Escape') closeLightbox();
+                if (e.key === 'ArrowRight') lightboxStep(1);
+                if (e.key === 'ArrowLeft') lightboxStep(-1);
                 return;
             }
+            if (e.key === 'Escape') { closeAuthModal(); closeAssistanceModal(); }
+        });
+        ['auth-modal', 'assistance-modal'].forEach(id => $(id).addEventListener('click', (e) => { if (e.target.id === id) hideModal(id); }));
+
+        // ================= ASSISTANCE =================
+        function openAssistanceModal(hotelId) {
+            hotelForAssistance = hotelsCache.find(h => h.id === hotelId);
+            if (!hotelForAssistance) return;
+            $('assistance-hotel-subtitle').innerText = `Our agents will book ${hotelForAssistance.name} (${hotelForAssistance.location}) for you and contact you to confirm.`;
+            const inD = $('home-checkin').value || todayStr();
+            const outD = ($('home-checkout').value && $('home-checkout').value > inD) ? $('home-checkout').value : addDays(inD, 1);
+            $('assist-checkin').min = todayStr(); $('assist-checkin').value = inD;
+            $('assist-checkout').min = addDays(inD, 1); $('assist-checkout').value = outD;
+            if (currentUser && currentUser.displayName) $('assist-name').value = currentUser.displayName;
+            showModal('assistance-modal');
+        }
+        function closeAssistanceModal() { hideModal('assistance-modal'); }
+        function onAssistCheckinChange() {
+            const inD = $('assist-checkin').value; if (!inD) return;
+            $('assist-checkout').min = addDays(inD, 1);
+            if ($('assist-checkout').value <= inD) $('assist-checkout').value = addDays(inD, 1);
+        }
+
+        async function submitAssistanceRequest(e) {
+            e.preventDefault();
+            const { db, collection, addDoc } = window.fb;
+            const name = $('assist-name').value.trim();
+            const phone = $('assist-phone').value.trim();
+            const checkin = $('assist-checkin').value;
+            const checkout = $('assist-checkout').value;
+            const notes = $('assist-notes').value.trim();
+
+            if (!/^[+\d][\d\s\-()]{6,19}$/.test(phone)) { toast('Enter a valid phone number, e.g. +971 50 123 4567.', 'error'); return; }
+            const n = nightsBetween(checkin, checkout);
+            if (n < 1) { toast('Check-out must be after check-in.', 'error'); return; }
+
+            const btn = $('assist-submit-btn');
+            btn.innerText = "Sending…"; btn.disabled = true;
+            try {
+                await addDoc(collection(db, "bookings"), {
+                    userId: currentUser ? currentUser.uid : "guest-assisted",
+                    userEmail: currentUser ? currentUser.email : `${name.replace(/\s+/g, '')}@guest.com`,
+                    hotelName: hotelForAssistance.name + " (Team Assisted Request)",
+                    hotelLocation: hotelForAssistance.location,
+                    checkin, checkout, time: "14:00", guests: "2",
+                    totalBill: +(hotelForAssistance.price * n * 0.9).toFixed(2),
+                    nights: n,
+                    txnId: "N/A (Assisted Request)",
+                    status: "Pending Team Review",
+                    notes, phone, customerName: name,
+                    createdAt: Date.now()
+                });
+                closeAssistanceModal();
+                $('assist-notes').value = '';
+                toast('Request sent. Our team will contact you shortly.', 'success');
+                if (currentUser) switchView('my-bookings');
+            } catch (err) {
+                toast('Could not send request: ' + err.message, 'error');
+            } finally {
+                btn.innerText = "Send request to team"; btn.disabled = false;
+            }
+        }
+
+        // ================= CHECKOUT =================
+        function openCheckoutPage(hotelId) {
+            if (!currentUser) { toast('Please sign in to continue with your booking.', 'info'); openAuthModal('login'); return; }
             currentHotelForBooking = hotelsCache.find(h => h.id === hotelId);
-            if(!currentHotelForBooking) return;
+            if (!currentHotelForBooking) return;
+            lastDetailsHotelId = hotelId;
 
-            const today = new Date().toISOString().split('T')[0];
-            const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
-            document.getElementById('book-checkin').value = today;
-            document.getElementById('book-checkout').value = tomorrow;
+            const inD = $('home-checkin').value && $('home-checkin').value >= todayStr() ? $('home-checkin').value : todayStr();
+            const outD = ($('home-checkout').value && $('home-checkout').value > inD) ? $('home-checkout').value : addDays(inD, 1);
+            $('book-checkin').min = todayStr(); $('book-checkin').value = inD;
+            $('book-checkout').min = addDays(inD, 1); $('book-checkout').value = outD;
+            $('book-txn-id').value = ''; validateTxnLive();
+            $('book-guests').value = 2;
 
-            document.getElementById('checkout-hotel-summary').innerHTML = `
-                <img src="${currentHotelForBooking.mainImage}" class="w-20 h-20 sm:w-24 sm:h-24 rounded-xl object-cover shadow-sm shrink-0">
+            const h = currentHotelForBooking;
+            $('checkout-hotel-summary').innerHTML = `
+                <img src="${safeUrl(h.mainImage)}" alt="${esc(h.name)}" class="w-20 h-20 sm:w-24 sm:h-24 rounded-xl object-cover shadow-sm shrink-0">
                 <div>
-                    <h3 class="text-base sm:text-lg font-extrabold text-gray-900">${currentHotelForBooking.name}</h3>
-                    <p class="text-xs text-gray-500 mt-0.5"><i class="fa-solid fa-location-dot text-gray-400 mr-1"></i>${currentHotelForBooking.location}</p>
-                    <span class="inline-block mt-2 bg-brand-blue text-white text-xs font-bold px-3 py-1 rounded-lg">AED ${currentHotelForBooking.price} / 24-hr night</span>
-                </div>
-            `;
-
+                    <h3 class="text-base sm:text-lg font-extrabold text-gray-900">${esc(h.name)}</h3>
+                    <p class="text-xs text-gray-500 mt-0.5"><i class="fa-solid fa-location-dot text-gray-400 mr-1"></i>${esc(h.location)}</p>
+                    <span class="inline-block mt-2 bg-brand-blue text-white text-xs font-bold px-3 py-1 rounded-lg">AED ${esc(h.price)} / 24-hour night</span>
+                </div>`;
             calculateBill();
             switchView('checkout');
         }
 
+        function onCheckinChange() {
+            const inD = $('book-checkin').value; if (!inD) return;
+            $('book-checkout').min = addDays(inD, 1);
+            if (!$('book-checkout').value || $('book-checkout').value <= inD) $('book-checkout').value = addDays(inD, 1);
+            calculateBill();
+        }
+
+        function stepGuests(d) {
+            const el = $('book-guests');
+            let v = (parseInt(el.value) || 1) + d;
+            el.value = Math.min(10, Math.max(1, v));
+        }
+
         function calculateBill() {
-            if(!currentHotelForBooking) return;
-            const checkin = new Date(document.getElementById('book-checkin').value);
-            const checkout = new Date(document.getElementById('book-checkout').value);
-            
-            let diffTime = checkout - checkin;
-            let nights = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            if(nights < 1) nights = 1;
+            if (!currentHotelForBooking) return null;
+            const inD = $('book-checkin').value, outD = $('book-checkout').value;
+            const err = $('date-error');
+            let nights = inD && outD ? nightsBetween(inD, outD) : 0;
+            const valid = nights >= 1;
+            err.classList.toggle('hidden', valid);
+            if (!valid) { err.innerText = 'Check-out must be at least one night after check-in.'; nights = 1; }
 
-            let subtotal = nights * currentHotelForBooking.price;
-            let discountVal = subtotal * 0.10; // Automatic 10% discount
-            let finalTotal = subtotal - discountVal;
+            const price = Number(currentHotelForBooking.price);
+            const subtotal = nights * price;
+            const discount = subtotal * 0.10;
+            const total = subtotal - discount;
 
-            document.getElementById('bill-nights').innerText = `${nights} night${nights > 1 ? 's' : ''} (24-hour periods)`;
-            document.getElementById('bill-per-night').innerText = `AED ${currentHotelForBooking.price}`;
-            document.getElementById('bill-discount-amount').innerText = `- AED ${discountVal.toFixed(2)}`;
-            document.getElementById('bill-total').innerText = `AED ${finalTotal.toFixed(2)}`;
-            return { nights, total: finalTotal };
+            $('bill-nights').innerText = `${nightsLabel(nights)} (24-hour periods)`;
+            $('bill-per-night').innerText = money(price);
+            $('bill-subtotal').innerText = money(subtotal);
+            $('bill-discount-amount').innerText = '- ' + money(discount);
+            $('bill-total').innerText = money(total);
+            return { nights, total: +total.toFixed(2), valid };
+        }
+
+        function copyIban() {
+            const text = $('iban-text').innerText.replace(/\s/g, '');
+            const done = () => toast('IBAN copied to clipboard', 'success');
+            if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, () => toast('Could not copy. Please copy it manually.', 'error'));
+            else toast('Copy is not supported here. Please copy it manually.', 'error');
+        }
+
+        // Transaction ID must be a plain reference number, never a link.
+        function txnProblem(raw) {
+            const v = raw.trim();
+            if (!v) return 'Enter your transaction ID.';
+            if (/https?:|www\.|:\/\/|\.[a-z]{2,}(\/|$)/i.test(v)) return 'Enter the transaction ID only, not a link.';
+            if (!/^[A-Za-z0-9\-\/]+$/.test(v)) return 'Use letters, numbers, dash or slash only (no spaces).';
+            if (v.length < 6) return 'Transaction ID is too short (min 6 characters).';
+            if (v.length > 30) return 'Transaction ID is too long (max 30 characters).';
+            return '';
+        }
+        function validateTxnLive() {
+            const el = $('book-txn-id'), hint = $('txn-hint'), v = el.value;
+            if (!v) { hint.className = 'text-[11px] font-semibold text-gray-400'; hint.innerText = '6–30 characters (A–Z, 0–9, dash or slash).'; el.classList.remove('border-red-400', 'border-emerald-500'); return; }
+            const p = txnProblem(v);
+            if (p) { hint.className = 'text-[11px] font-semibold text-red-600'; hint.innerText = p; el.classList.add('border-red-400'); el.classList.remove('border-emerald-500'); }
+            else { hint.className = 'text-[11px] font-semibold text-emerald-600'; hint.innerText = 'Looks good.'; el.classList.add('border-emerald-500'); el.classList.remove('border-red-400'); }
         }
 
         async function submitBookingOrder(e) {
             e.preventDefault();
+            if (!currentUser || !currentHotelForBooking) { toast('Please sign in first.', 'error'); return; }
             const { db, collection, addDoc } = window.fb;
-            const checkin = document.getElementById('book-checkin').value;
-            const checkout = document.getElementById('book-checkout').value;
-            const time = document.getElementById('book-time').value;
-            const guests = document.getElementById('book-guests').value;
-            const txnId = document.getElementById('book-txn-id').value;
+
             const bill = calculateBill();
+            if (!bill || !bill.valid) { toast('Please choose valid dates.', 'error'); return; }
+            const checkin = $('book-checkin').value;
+            if (checkin < todayStr()) { toast('Check-in cannot be in the past.', 'error'); return; }
 
-            const btn = document.getElementById('submit-booking-btn');
-            btn.innerText = "Submitting Booking...";
-            btn.disabled = true;
+            const txnId = $('book-txn-id').value.trim().toUpperCase();
+            const problem = txnProblem(txnId);
+            if (problem) { toast(problem, 'error'); $('book-txn-id').focus(); return; }
+            if (bookingsCache.some(b => (b.txnId || '').toUpperCase() === txnId)) { toast('This transaction ID was already submitted.', 'error'); return; }
 
+            const btn = $('submit-booking-btn');
+            btn.innerText = "Submitting…"; btn.disabled = true;
             try {
                 await addDoc(collection(db, "bookings"), {
                     userId: currentUser.uid,
                     userEmail: currentUser.email,
                     hotelName: currentHotelForBooking.name,
                     hotelLocation: currentHotelForBooking.location,
-                    checkin, checkout, time, guests,
+                    checkin, checkout: $('book-checkout').value,
+                    time: $('book-time').value,
+                    guests: String(parseInt($('book-guests').value) || 1),
                     totalBill: bill.total,
                     nights: bill.nights,
                     txnId,
                     status: "Pending",
                     createdAt: Date.now()
                 });
-
-                alert('Thanks! We will verify your transaction ID. Your booking status is currently PENDING. Our team will contact you shortly.');
+                toast('Booking submitted. We will verify your transaction ID shortly.', 'success');
                 switchView('my-bookings');
-            } catch(err) {
-                alert('Error submitting booking: ' + err.message);
+            } catch (err) {
+                toast('Could not submit booking: ' + err.message, 'error');
             } finally {
-                btn.innerText = "Proceed to Submit Payment Proof";
-                btn.disabled = false;
+                btn.innerText = "Submit payment details"; btn.disabled = false;
             }
         }
 
-        // ================= USER BOOKINGS STATUS PAGE =================
+        // ================= MY BOOKINGS =================
         function renderUserBookings() {
-            const container = document.getElementById('my-bookings-list');
-            container.innerHTML = '';
-            if(!currentUser) return;
-
-            const userBookings = bookingsCache.filter(b => b.userId === currentUser.uid);
-
-            if(userBookings.length === 0) {
-                container.innerHTML = `<div class="bg-white p-6 sm:p-8 rounded-2xl text-center border text-gray-500 text-xs sm:text-sm">You have no active bookings yet.</div>`;
+            const container = $('my-bookings-list');
+            if (!currentUser) { container.innerHTML = ''; return; }
+            const mine = bookingsCache.filter(b => b.userId === currentUser.uid);
+            if (mine.length === 0) {
+                container.innerHTML = `<div class="bg-white p-8 rounded-2xl text-center border text-gray-500 text-sm">
+                    <i class="fa-solid fa-suitcase-rolling text-3xl text-gray-300 mb-2"></i><p>You have no bookings yet.</p>
+                    <button onclick="switchView('home')" class="mt-3 bg-brand-blue text-white text-xs font-bold px-4 py-2 rounded-xl">Browse stays</button></div>`;
                 return;
             }
-
-            userBookings.forEach(b => {
-                const badgeColor = b.status === 'Paid & Confirmed' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-amber-100 text-amber-800 border-amber-300';
-                const div = document.createElement('div');
-                div.className = "bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 text-xs sm:text-sm";
-                div.innerHTML = `
+            container.innerHTML = mine.map(b => `
+                <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 text-xs sm:text-sm">
                     <div>
                         <div class="flex flex-wrap items-center gap-2 mb-1">
-                            <h3 class="font-bold text-base sm:text-lg text-gray-900">${b.hotelName}</h3>
-                            <span class="text-[10px] sm:text-xs font-extrabold px-2.5 py-0.5 rounded-full border ${badgeColor}">${b.status}</span>
+                            <h3 class="font-bold text-base sm:text-lg text-gray-900">${esc(b.hotelName)}</h3>${statusBadge(b.status)}
                         </div>
-                        <p class="text-gray-500 text-[11px] sm:text-xs"><i class="fa-solid fa-calendar-days mr-1"></i> ${b.checkin} to ${b.checkout} (${b.nights}) · Time: ${b.time} · Guests: ${b.guests}</p>
-                        <p class="font-bold text-gray-800 mt-2">Total Bill: AED ${b.totalBill}</p>
-                        ${b.notes ? `<p class="text-[11px] text-gray-400 mt-1">Notes: ${b.notes}</p>` : ''}
+                        <p class="text-gray-500 text-[11px] sm:text-xs"><i class="fa-solid fa-calendar-days mr-1"></i> ${esc(b.checkin)} to ${esc(b.checkout)} (${nightsLabel(b.nights)}) · ${esc(b.time)} · ${esc(b.guests)} guest${b.guests == 1 ? '' : 's'}</p>
+                        <p class="font-bold text-gray-800 mt-2">Total: ${money(b.totalBill)}</p>
+                        ${b.notes ? `<p class="text-[11px] text-gray-400 mt-1">Notes: ${esc(b.notes)}</p>` : ''}
                     </div>
                     <div class="sm:text-right text-xs w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100 flex sm:flex-col justify-between items-center sm:items-end">
                         <span class="text-gray-400 block mb-1">Transaction ID</span>
-                        <span class="font-mono font-bold text-brand-blue bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200">${b.txnId || 'N/A'}</span>
+                        <span class="font-mono font-bold text-brand-blue bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200">${esc(b.txnId || 'N/A')}</span>
                     </div>
-                `;
-                container.appendChild(div);
-            });
+                </div>`).join('');
         }
 
-        // ================= ADMIN BOOKINGS MANAGEMENT =================
+        // ================= ADMIN =================
+        function requireAdmin() {
+            if (!isAdmin) { toast('Admin privileges required.', 'error'); return false; }
+            return true;
+        }
+
+        function switchAdminTab(tab) {
+            const on = "bg-brand-blue text-white px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow";
+            const off = "bg-white text-gray-700 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow border";
+            $('admin-section-hotels').classList.toggle('hidden', tab !== 'hotels');
+            $('admin-section-bookings').classList.toggle('hidden', tab !== 'bookings');
+            $('admin-tab-hotels-btn').className = tab === 'hotels' ? on : off;
+            const bb = $('admin-tab-bookings-btn'); const badge = $('pending-badge');
+            bb.className = tab === 'bookings' ? on : off;
+        }
+
+        function renderAdminStats() {
+            const total = bookingsCache.length;
+            const pending = bookingsCache.filter(b => !['Paid & Confirmed', 'Rejected'].includes(b.status)).length;
+            const confirmed = bookingsCache.filter(b => b.status === 'Paid & Confirmed');
+            const revenue = confirmed.reduce((s, b) => s + (Number(b.totalBill) || 0), 0);
+            const cards = [
+                ['Hotels', hotelsCache.length, 'fa-hotel', 'text-brand-blue'],
+                ['Pending review', pending, 'fa-hourglass-half', 'text-amber-600'],
+                ['Confirmed', confirmed.length + ' / ' + total, 'fa-circle-check', 'text-emerald-600'],
+                ['Confirmed revenue', money(revenue), 'fa-coins', 'text-brand-blue']
+            ];
+            $('admin-stats').innerHTML = cards.map(c => `
+                <div class="bg-white rounded-2xl p-4 border border-gray-200 shadow-sm">
+                    <div class="flex items-center gap-2 text-xs text-gray-500 font-bold"><i class="fa-solid ${c[2]} ${c[3]}"></i>${c[0]}</div>
+                    <div class="text-xl sm:text-2xl font-extrabold text-gray-900 mt-1">${c[1]}</div>
+                </div>`).join('');
+            const badge = $('pending-badge');
+            badge.innerText = pending; badge.classList.toggle('hidden', pending === 0);
+        }
+
+        function setBookingFilter(f) { bookingFilter = f; renderAdminBookings(); }
+
         function renderAdminBookings() {
-            const container = document.getElementById('admin-bookings-list');
-            container.innerHTML = '';
+            if (!isAdmin) return;
+            renderAdminStats();
+            const filters = [['all', 'All'], ['pending', 'Pending'], ['confirmed', 'Confirmed'], ['rejected', 'Rejected']];
+            $('admin-booking-filters').innerHTML = filters.map(([k, l]) =>
+                `<button onclick="setBookingFilter('${k}')" class="px-3 py-1.5 rounded-lg border ${bookingFilter === k ? 'bg-brand-blue text-white border-brand-blue' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}">${l}</button>`).join('');
 
-            if(bookingsCache.length === 0) {
-                container.innerHTML = `<p class="text-xs text-gray-500">No customer bookings submitted yet.</p>`;
-                return;
-            }
+            const list = bookingsCache.filter(b => {
+                if (bookingFilter === 'confirmed') return b.status === 'Paid & Confirmed';
+                if (bookingFilter === 'rejected') return b.status === 'Rejected';
+                if (bookingFilter === 'pending') return !['Paid & Confirmed', 'Rejected'].includes(b.status);
+                return true;
+            });
+            const container = $('admin-bookings-list');
+            if (list.length === 0) { container.innerHTML = `<p class="text-xs text-gray-500">No bookings in this view.</p>`; return; }
 
-            bookingsCache.forEach(b => {
-                const badgeColor = b.status === 'Paid & Confirmed' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800';
-                const div = document.createElement('div');
-                div.className = "p-4 bg-gray-50 rounded-xl border border-gray-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 text-xs";
-                div.innerHTML = `
-                    <div>
-                        <span class="font-extrabold text-brand-blue">${b.userEmail}</span> booked <strong class="text-gray-900">${b.hotelName}</strong>
-                        <p class="text-gray-500 mt-0.5">${b.checkin} to ${b.checkout} (${b.nights}) · Bill: <strong>AED ${b.totalBill}</strong> ${b.phone ? '· Ph: ' + b.phone : ''}</p>
-                        ${b.notes ? `<p class="text-[11px] text-blue-700 mt-1 font-semibold">Customer Note: ${b.notes}</p>` : ''}
+            container.innerHTML = list.map(b => `
+                <div class="p-4 bg-gray-50 rounded-xl border border-gray-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 text-xs">
+                    <div class="min-w-0">
+                        <span class="font-extrabold text-brand-blue break-all">${esc(b.userEmail)}</span> booked <strong class="text-gray-900">${esc(b.hotelName)}</strong>
+                        <p class="text-gray-500 mt-0.5">${esc(b.checkin)} to ${esc(b.checkout)} (${nightsLabel(b.nights)}) · Bill: <strong>${money(b.totalBill)}</strong>${b.phone ? ' · Ph: ' + esc(b.phone) : ''}${b.customerName ? ' · ' + esc(b.customerName) : ''}</p>
+                        ${b.notes ? `<p class="text-[11px] text-blue-700 mt-1 font-semibold">Customer note: ${esc(b.notes)}</p>` : ''}
                         <div class="mt-2 flex flex-wrap items-center gap-2">
-                            <span class="px-2 py-0.5 rounded font-bold ${badgeColor}">Status: ${b.status}</span>
-                            <span class="font-mono bg-white px-2 py-1 rounded border border-gray-300 text-gray-800">Txn ID: <strong>${b.txnId || 'N/A'}</strong></span>
+                            ${statusBadge(b.status)}
+                            <span class="font-mono bg-white px-2 py-1 rounded border border-gray-300 text-gray-800">Txn ID: <strong>${esc(b.txnId || 'N/A')}</strong></span>
                         </div>
                     </div>
-                    <div>
-                        <button onclick="updateBookingStatus('${b.id}', 'Paid & Confirmed')" class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-2 rounded-lg transition">
-                            <i class="fa-solid fa-check mr-1"></i> Confirm Payment
-                        </button>
+                    <div class="flex flex-wrap gap-2 w-full md:w-auto">
+                        <button onclick="updateBookingStatus('${b.id}', 'Paid & Confirmed')" ${b.status === 'Paid & Confirmed' ? 'disabled' : ''} class="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold px-3 py-2 rounded-lg transition"><i class="fa-solid fa-check mr-1"></i> Confirm</button>
+                        <button onclick="updateBookingStatus('${b.id}', 'Rejected')" ${b.status === 'Rejected' ? 'disabled' : ''} class="flex-1 md:flex-none bg-amber-500 hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold px-3 py-2 rounded-lg transition"><i class="fa-solid fa-ban mr-1"></i> Reject</button>
+                        <button onclick="deleteBooking('${b.id}')" class="bg-white hover:bg-red-50 text-red-600 border border-red-200 font-bold px-3 py-2 rounded-lg transition" aria-label="Delete booking"><i class="fa-solid fa-trash"></i></button>
                     </div>
-                `;
-                container.appendChild(div);
-            });
+                </div>`).join('');
         }
 
         async function updateBookingStatus(bookingId, newStatus) {
+            if (!requireAdmin()) return;
             const { db, doc, updateDoc } = window.fb;
             try {
                 await updateDoc(doc(db, "bookings", bookingId), { status: newStatus });
-                alert('Booking status updated to Paid & Confirmed successfully!');
-            } catch(err) {
-                alert('Error updating status.');
+                toast(`Booking marked as ${newStatus}.`, 'success');
+            } catch (err) { toast('Could not update status: ' + err.message, 'error'); }
+        }
+
+        async function deleteBooking(id) {
+            if (!requireAdmin()) return;
+            if (!await confirmDialog('Delete this booking?', 'This permanently removes the reservation record.', 'Delete')) return;
+            const { db, doc, deleteDoc } = window.fb;
+            try { await deleteDoc(doc(db, "bookings", id)); toast('Booking deleted.', 'success'); }
+            catch (err) { toast('Could not delete: ' + err.message, 'error'); }
+        }
+
+        function buildGalleryInputs(values = []) {
+            const container = $('gallery-inputs-container');
+            container.innerHTML = '';
+            for (let i = 1; i <= 10; i++) {
+                const div = document.createElement('div');
+                div.innerHTML = `<input type="url" id="gallery-photo-${i}" placeholder="Gallery photo ${i} URL" class="w-full text-xs border border-gray-300 rounded-lg px-3 py-2">`;
+                container.appendChild(div);
+                if (values[i - 1]) div.firstChild.value = values[i - 1];
             }
         }
 
-        async function handleAddNewHotel(e) {
+        function previewCover() {
+            const v = $('admin-main-img').value.trim(); const img = $('cover-preview');
+            if (v && safeUrl(v)) { img.src = v; img.classList.remove('hidden'); } else img.classList.add('hidden');
+        }
+
+        async function handleSaveHotel(e) {
             e.preventDefault();
-            const { db, collection, addDoc } = window.fb;
-            const name = document.getElementById('admin-name').value;
-            const location = document.getElementById('admin-location').value;
-            const price = parseFloat(document.getElementById('admin-price').value);
-            const mainImage = document.getElementById('admin-main-img').value;
-            const desc = document.getElementById('admin-desc').value;
+            if (!requireAdmin()) return;
+            const { db, collection, addDoc, doc, updateDoc } = window.fb;
+            const data = {
+                name: $('admin-name').value.trim(),
+                location: $('admin-location').value.trim(),
+                price: parseFloat($('admin-price').value),
+                mainImage: $('admin-main-img').value.trim(),
+                desc: $('admin-desc').value.trim(),
+                photos: []
+            };
+            if (!(data.price > 0)) { toast('Enter a valid price.', 'error'); return; }
+            for (let i = 1; i <= 10; i++) { const v = $(`gallery-photo-${i}`).value.trim(); if (v) data.photos.push(v); }
 
-            let photos = [];
-            for(let i = 1; i <= 10; i++) {
-                const val = document.getElementById(`gallery-photo-${i}`).value;
-                if(val) photos.push(val);
-            }
-
+            const btn = $('submit-hotel-btn'); const label = btn.innerText;
+            btn.innerText = 'Saving…'; btn.disabled = true;
             try {
-                await addDoc(collection(db, "hotels"), { name, location, price, mainImage, photos, desc, createdAt: Date.now() });
-                alert('Hotel successfully published!');
-                document.getElementById('hotel-form').reset();
-                buildGalleryInputs();
-                switchAdminTab('hotels');
-            } catch (err) { alert('Error saving hotel.'); }
+                if (editingHotelId) { await updateDoc(doc(db, "hotels", editingHotelId), data); toast('Hotel updated.', 'success'); }
+                else { await addDoc(collection(db, "hotels"), { ...data, createdAt: Date.now() }); toast('Hotel published.', 'success'); }
+                cancelEditHotel();
+            } catch (err) { toast('Could not save hotel: ' + err.message, 'error'); }
+            finally { btn.disabled = false; btn.innerText = editingHotelId ? 'Update hotel' : 'Save hotel'; }
+        }
+
+        function editHotel(id) {
+            if (!requireAdmin()) return;
+            const h = hotelsCache.find(x => x.id === id); if (!h) return;
+            editingHotelId = id;
+            $('admin-name').value = h.name || ''; $('admin-location').value = h.location || '';
+            $('admin-price').value = h.price || ''; $('admin-main-img').value = h.mainImage || '';
+            $('admin-desc').value = h.desc || '';
+            buildGalleryInputs(h.photos || []); previewCover();
+            $('hotel-form-title').innerText = 'Edit hotel';
+            $('submit-hotel-btn').innerText = 'Update hotel';
+            $('cancel-edit-btn').classList.remove('hidden');
+            switchAdminTab('hotels');
+            $('hotel-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function cancelEditHotel() {
+            editingHotelId = null;
+            $('hotel-form').reset(); buildGalleryInputs(); previewCover();
+            $('hotel-form-title').innerText = 'Register new hotel & room photos';
+            $('submit-hotel-btn').innerText = 'Save hotel';
+            $('cancel-edit-btn').classList.add('hidden');
         }
 
         function renderAdminList() {
-            const container = document.getElementById('admin-hotels-list');
-            container.innerHTML = '';
-            hotelsCache.forEach(hotel => {
-                const item = document.createElement('div');
-                item.className = "flex items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-xl border border-gray-200 text-xs gap-3";
-                item.innerHTML = `
+            if (!isAdmin) return;
+            renderAdminStats();
+            const container = $('admin-hotels-list');
+            if (hotelsCache.length === 0) { container.innerHTML = '<p class="text-xs text-gray-500">No hotels yet. Add your first property above.</p>'; return; }
+            container.innerHTML = hotelsCache.map(h => `
+                <div class="flex items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-xl border border-gray-200 text-xs gap-3">
                     <div class="flex items-center space-x-3 overflow-hidden">
-                        <img src="${hotel.mainImage}" class="w-10 h-10 rounded-lg object-cover shrink-0">
-                        <div class="truncate"><h4 class="font-bold text-gray-900 truncate">${hotel.name}</h4><p class="text-gray-500 truncate">${hotel.location} · AED ${hotel.price} / night</p></div>
+                        <img src="${safeUrl(h.mainImage)}" alt="" class="w-12 h-12 rounded-lg object-cover shrink-0 bg-gray-200">
+                        <div class="truncate"><h4 class="font-bold text-gray-900 truncate">${esc(h.name)}</h4><p class="text-gray-500 truncate">${esc(h.location)} · AED ${esc(h.price)} / night · ${(h.photos || []).length} photos</p></div>
                     </div>
-                    <button onclick="deleteHotelDB('${hotel.id}')" class="text-red-500 hover:bg-red-50 px-3 py-1.5 rounded font-bold shrink-0"><i class="fa-solid fa-trash mr-1"></i> Delete</button>
-                `;
-                container.appendChild(item);
-            });
+                    <div class="flex gap-1 shrink-0">
+                        <button onclick="editHotel('${h.id}')" class="text-brand-blue hover:bg-blue-50 px-3 py-1.5 rounded font-bold"><i class="fa-solid fa-pen mr-1"></i> Edit</button>
+                        <button onclick="deleteHotelDB('${h.id}')" class="text-red-500 hover:bg-red-50 px-3 py-1.5 rounded font-bold"><i class="fa-solid fa-trash mr-1"></i> Delete</button>
+                    </div>
+                </div>`).join('');
         }
 
         async function deleteHotelDB(id) {
-            if(confirm('Delete this hotel?')) {
-                const { db, doc, deleteDoc } = window.fb;
-                await deleteDoc(doc(db, "hotels", id));
-            }
+            if (!requireAdmin()) return;
+            const h = hotelsCache.find(x => x.id === id);
+            if (!await confirmDialog('Delete this hotel?', `${h ? h.name : 'This hotel'} will be removed from the website.`, 'Delete')) return;
+            const { db, doc, deleteDoc } = window.fb;
+            try { await deleteDoc(doc(db, "hotels", id)); toast('Hotel deleted.', 'success'); }
+            catch (err) { toast('Could not delete hotel: ' + err.message, 'error'); }
         }
 
-        function openAuthModal(mode) { setAuthMode(mode); document.getElementById('auth-modal').classList.remove('hidden'); }
-        function closeAuthModal() { document.getElementById('auth-modal').classList.add('hidden'); }
+        // ================= AUTH =================
+        function openAuthModal(mode) { setAuthMode(mode); showModal('auth-modal'); }
+        function closeAuthModal() { hideModal('auth-modal'); }
+        function togglePass() {
+            const p = $('auth-pass'); const show = p.type === 'password';
+            p.type = show ? 'text' : 'password';
+            $('pass-eye').className = show ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye';
+        }
         function setAuthMode(mode) {
             authModeState = mode;
-            const loginTab = document.getElementById('tab-login');
-            const regTab = document.getElementById('tab-register');
-            const nameBox = document.getElementById('name-field-box');
-            const submitBtn = document.getElementById('auth-submit-btn');
+            const active = "flex-1 pb-3 font-bold text-brand-blue border-b-2 border-brand-blue text-center text-sm";
+            const idle = "flex-1 pb-3 font-bold text-gray-400 text-center text-sm";
+            $('tab-login').className = mode === 'login' ? active : idle;
+            $('tab-register').className = mode === 'register' ? active : idle;
+            $('name-field-box').classList.toggle('hidden', mode === 'login');
+            $('auth-submit-btn').innerText = mode === 'login' ? 'Sign in' : 'Create account';
+        }
 
-            if(mode === 'login') {
-                loginTab.className = "flex-1 pb-3 font-bold text-brand-blue border-b-2 border-brand-blue text-center text-sm";
-                regTab.className = "flex-1 pb-3 font-bold text-gray-400 text-center text-sm";
-                nameBox.classList.add('hidden');
-                submitBtn.innerText = "Sign In";
-            } else {
-                regTab.className = "flex-1 pb-3 font-bold text-brand-blue border-b-2 border-brand-blue text-center text-sm";
-                loginTab.className = "flex-1 pb-3 font-bold text-gray-400 text-center text-sm";
-                nameBox.classList.remove('hidden');
-                submitBtn.innerText = "Create Account";
-            }
+        function friendlyAuthError(err) {
+            const map = {
+                'auth/invalid-credential': 'Incorrect email or password.',
+                'auth/wrong-password': 'Incorrect email or password.',
+                'auth/user-not-found': 'No account found with this email.',
+                'auth/email-already-in-use': 'An account with this email already exists. Try signing in.',
+                'auth/weak-password': 'Password must be at least 6 characters.',
+                'auth/invalid-email': 'Enter a valid email address.',
+                'auth/too-many-requests': 'Too many attempts. Please wait a moment and try again.',
+                'auth/network-request-failed': 'Network error. Check your connection.'
+            };
+            return map[err.code] || err.message;
         }
 
         async function handleAuthSubmit(e) {
             e.preventDefault();
             const { auth, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } = window.fb;
-            const email = document.getElementById('auth-email').value;
-            const pass = document.getElementById('auth-pass').value;
-            const name = document.getElementById('auth-name').value;
-
+            const email = $('auth-email').value.trim();
+            const pass = $('auth-pass').value;
+            const name = $('auth-name').value.trim();
+            const btn = $('auth-submit-btn'); const label = btn.innerText;
+            btn.innerText = 'Please wait…'; btn.disabled = true;
             try {
-                if(authModeState === 'register') {
-                    const userCred = await createUserWithEmailAndPassword(auth, email, pass);
-                    if(name) await updateProfile(userCred.user, { displayName: name });
-                    alert('Account created successfully!');
+                if (authModeState === 'register') {
+                    const cred = await createUserWithEmailAndPassword(auth, email, pass);
+                    if (name) await updateProfile(cred.user, { displayName: name });
+                    updateHeaderAuthUI(auth.currentUser);
+                    toast('Account created. Welcome!', 'success');
                 } else {
                     await signInWithEmailAndPassword(auth, email, pass);
-                    alert('Signed in successfully.');
+                    toast('Signed in successfully.', 'success');
                 }
+                $('auth-form').reset();
                 closeAuthModal();
-            } catch(err) { alert('Auth error: ' + err.message); }
+            } catch (err) { toast(friendlyAuthError(err), 'error'); }
+            finally { btn.disabled = false; btn.innerText = label; }
         }
 
         async function handleSignOut() {
             const { auth, signOut } = window.fb;
             await signOut(auth);
-            alert('Signed out successfully.');
+            toast('Signed out.', 'info');
         }
 
         function updateHeaderAuthUI(user) {
-            const container = document.getElementById('auth-header-container');
-            if(user) {
+            const container = $('auth-header-container');
+            if (user) {
                 const displayName = user.displayName || user.email.split('@')[0];
                 container.innerHTML = `
                     <div class="flex items-center space-x-2 sm:space-x-3 bg-blue-900/80 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl border border-blue-600 shadow-sm">
-                        <div class="bg-brand-gold text-brand-dark font-extrabold text-xs w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center shrink-0">${displayName.charAt(0).toUpperCase()}</div>
+                        <div class="bg-brand-gold text-brand-dark font-extrabold text-xs w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center shrink-0">${esc(displayName.charAt(0).toUpperCase())}</div>
                         <div class="hidden sm:block text-left text-xs">
-                            <span class="block font-extrabold text-white">Hi, ${displayName}</span>
-                            <span class="block text-[10px] text-blue-200">Active</span>
+                            <span class="block font-extrabold text-white">Hi, ${esc(displayName)}</span>
+                            <span class="block text-[10px] text-blue-200">${isAdmin ? 'Administrator' : 'Signed in'}</span>
                         </div>
-                        <button onclick="handleSignOut()" title="Sign Out" class="text-blue-300 hover:text-white text-xs ml-1 sm:ml-2 pl-2 border-l border-blue-600"><i class="fa-solid fa-right-from-bracket"></i></button>
-                    </div>
-                `;
+                        <button onclick="handleSignOut()" title="Sign out" aria-label="Sign out" class="text-blue-300 hover:text-white text-xs ml-1 sm:ml-2 pl-2 border-l border-blue-600"><i class="fa-solid fa-right-from-bracket"></i></button>
+                    </div>`;
             } else {
                 container.innerHTML = `<button onclick="openAuthModal('login')" class="bg-brand-gold hover:bg-amber-400 text-brand-dark px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold transition shadow-md">Sign In</button>`;
             }
         }
+
+        // ================= INIT =================
+        (function init() {
+            const t = todayStr();
+            $('home-checkin').min = t; $('home-checkout').min = addDays(t, 1);
+            $('home-checkin').addEventListener('change', () => {
+                const v = $('home-checkin').value; if (!v) return;
+                $('home-checkout').min = addDays(v, 1);
+                if ($('home-checkout').value && $('home-checkout').value <= v) $('home-checkout').value = addDays(v, 1);
+            });
+            renderCustomerHotels([]);
+        })();
     </script>
 </body>
 </html>
